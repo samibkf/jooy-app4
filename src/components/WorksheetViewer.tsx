@@ -403,18 +403,20 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
               height: `${region.height * scaleFactor}px`,
               overflow: 'hidden',
               zIndex: 5,
+              border: '1px solid rgba(0,0,0,0.1)', // Subtle border for debugging
             }}
           >
             <Document
               file={pdfPath}
               className="clear-document"
             >
-              {/* Fix: Moved the styling to the parent div and removed the style prop from Page */}
               <div
                 style={{
                   position: 'absolute',
                   left: `-${region.x * scaleFactor}px`,
                   top: `-${region.y * scaleFactor}px`,
+                  width: `${pdfDimensions.width * scaleFactor}px`, // Set full document width
+                  height: `${pdfDimensions.height * scaleFactor}px`, // Set full document height
                 }}
               >
                 <Page
