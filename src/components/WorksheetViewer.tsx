@@ -34,6 +34,9 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
   const [activeRegion, setActiveRegion] = useState<RegionData | null>(null);
   const [currentStepIndex, setCurrentStepIndex] = useState<number>(0);
   
+  // New state for UI mode (text mode vs PDF mode)
+  const [isTextMode, setIsTextMode] = useState<boolean>(false);
+  
   // Reference to the PDF container and PDF itself for getting rendered dimensions
   const pdfContainerRef = useRef<HTMLDivElement>(null);
   const pdfRef = useRef<HTMLCanvasElement>(null);
@@ -60,6 +63,9 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
     // Reset active region when worksheet or page changes
     setActiveRegion(null);
     setCurrentStepIndex(0);
+    
+    // Reset text mode when worksheet or page changes
+    setIsTextMode(false);
     
     // Stop any playing audio when worksheet or page changes
     if (audioRef.current) {
@@ -252,6 +258,9 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
       playAudio(region.name, 0);
     }
     
+    // Set to text mode when a region is clicked
+    setIsTextMode(true);
+    
     toast({
       title: "Region Selected",
       description: `You clicked on: ${region.name}`,
@@ -271,11 +280,28 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
     }
   };
   
+  // Toggle text mode on double click
+  const handleDoubleClick = () => {
+    // Only toggle if there's an active region
+    if (activeRegion) {
+      setIsTextMode(prev => !prev);
+      
+      // If switching to text mode, replay the current step's audio
+      if (!isTextMode && activeRegion) {
+        playAudio(activeRegion.name, currentStepIndex);
+      }
+    }
+  };
+  
   // Check if we can go to the next step
   const hasNextStep = activeRegion?.description && currentStepIndex < activeRegion.description.length - 1;
 
   return (
-    <div className="worksheet-container" ref={pdfContainerRef}>
+    <div 
+      className={`worksheet-container ${isTextMode ? 'text-mode' : ''}`} 
+      ref={pdfContainerRef}
+      onDoubleClick={handleDoubleClick}
+    >
       {/* Audio element for playback */}
       <audio ref={audioRef} className="hidden" />
       
@@ -305,41 +331,44 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
         </div>
       )}
       
-      <Document
-        file={pdfPath}
-        onLoadSuccess={onDocumentLoadSuccess}
-        onLoadError={onDocumentLoadError}
-        loading={null}
-      >
-        <Page
-          pageNumber={1}
-          renderTextLayer={false}
-          renderAnnotationLayer={false}
-          className="worksheet-page"
-          width={window.innerWidth > 768 ? 600 : undefined}
-          onLoadSuccess={onPageLoadSuccess}
-        />
-      </Document>
+      {/* PDF Document and regions - hidden in text mode */}
+      <div className={`worksheet-pdf-container ${isTextMode ? 'hidden' : ''}`}>
+        <Document
+          file={pdfPath}
+          onLoadSuccess={onDocumentLoadSuccess}
+          onLoadError={onDocumentLoadError}
+          loading={null}
+        >
+          <Page
+            pageNumber={1}
+            renderTextLayer={false}
+            renderAnnotationLayer={false}
+            className="worksheet-page"
+            width={window.innerWidth > 768 ? 600 : undefined}
+            onLoadSuccess={onPageLoadSuccess}
+          />
+        </Document>
+        
+        {/* Region overlays */}
+        {!loading && !error && filteredRegions.map((region) => (
+          <div
+            key={region.id}
+            className="worksheet-region"
+            style={{
+              position: 'absolute',
+              left: `${region.x * scaleFactor + pdfPosition.left}px`,
+              top: `${region.y * scaleFactor + pdfPosition.top}px`,
+              width: `${region.width * scaleFactor}px`,
+              height: `${region.height * scaleFactor}px`,
+            }}
+            onClick={() => handleRegionClick(region)}
+            title={region.name}
+          />
+        ))}
+      </div>
       
-      {/* Region overlays */}
-      {!loading && !error && filteredRegions.map((region) => (
-        <div
-          key={region.id}
-          className="worksheet-region"
-          style={{
-            position: 'absolute',
-            left: `${region.x * scaleFactor + pdfPosition.left}px`,
-            top: `${region.y * scaleFactor + pdfPosition.top}px`,
-            width: `${region.width * scaleFactor}px`,
-            height: `${region.height * scaleFactor}px`,
-          }}
-          onClick={() => handleRegionClick(region)}
-          title={region.name}
-        />
-      ))}
-      
-      {/* Text display area */}
-      <div className="worksheet-text-display">
+      {/* Text display area - expanded in text mode */}
+      <div className={`worksheet-text-display ${isTextMode ? 'full-screen' : ''}`}>
         {activeRegion ? (
           <>
             <h3 className="text-lg font-semibold mb-2">{activeRegion.name}</h3>
@@ -361,11 +390,17 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
         )}
       </div>
       
-      {numPages && numPages > 0 && !error && !loading && (
+      {!isTextMode && numPages && numPages > 0 && !error && !loading && (
         <div className="worksheet-info">
           <p className="text-sm text-gray-500 mt-2">
             Page 1 of {numPages}
           </p>
+        </div>
+      )}
+      
+      {isTextMode && (
+        <div className="text-mode-instructions">
+          <p>Double-click anywhere to return to PDF view</p>
         </div>
       )}
     </div>
