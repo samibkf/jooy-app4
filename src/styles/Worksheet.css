@@ -51,11 +51,49 @@
   transform: scale(1.01);
 }
 
+/* Text Display Area Styles */
+.worksheet-text-display {
+  margin-top: 1rem;
+  padding: 1rem;
+  background-color: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  width: 100%;
+  max-width: 600px;
+  min-height: 150px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.worksheet-text-display h3 {
+  color: #0d6efd;
+  margin-bottom: 0.5rem;
+}
+
+.worksheet-text-display .text-content {
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+.next-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.next-button:hover {
+  transform: translateX(2px);
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
   .worksheet-page {
     width: 100% !important;
     height: auto !important;
+  }
+  
+  .worksheet-text-display {
+    max-width: 100%;
   }
 }
 

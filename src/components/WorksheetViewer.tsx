@@ -3,7 +3,9 @@ import React, { useState, useEffect, useRef } from "react";
 import { Document, Page, pdfjs } from "react-pdf";
 import "../styles/Worksheet.css";
 import { toast } from "@/components/ui/use-toast";
+import { Button } from "@/components/ui/button";
 import { RegionData, WorksheetMetadata } from "@/types/worksheet";
+import { ChevronRight } from "lucide-react";
 
 // Set up the worker for react-pdf
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.js`;
@@ -29,6 +31,10 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
   const [scaleFactor, setScaleFactor] = useState(1);
   const [pdfPosition, setPdfPosition] = useState({ top: 0, left: 0 });
   
+  // New state for active region and step index
+  const [activeRegion, setActiveRegion] = useState<RegionData | null>(null);
+  const [currentStepIndex, setCurrentStepIndex] = useState<number>(0);
+  
   // Reference to the PDF container and PDF itself for getting rendered dimensions
   const pdfContainerRef = useRef<HTMLDivElement>(null);
   const pdfRef = useRef<HTMLCanvasElement>(null);
@@ -48,6 +54,10 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
     if (worksheetId || pageIndex) {
       setRetryCount(0);
     }
+
+    // Reset active region when worksheet or page changes
+    setActiveRegion(null);
+    setCurrentStepIndex(0);
   }, [worksheetId, pageIndex, pdfPath]);
   
   // Fetch metadata JSON
@@ -192,11 +202,31 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
   // Handle region click
   const handleRegionClick = (region: RegionData) => {
     console.log(`Region clicked: ${region.name}`);
+    
+    // If clicking the same region, reset to first step
+    if (activeRegion && activeRegion.id === region.id) {
+      setCurrentStepIndex(0);
+    } else {
+      // If clicking a different region, set it as active and start from beginning
+      setActiveRegion(region);
+      setCurrentStepIndex(0);
+    }
+    
     toast({
       title: "Region Selected",
       description: `You clicked on: ${region.name}`,
     });
   };
+  
+  // Handle Next button click
+  const handleNextStep = () => {
+    if (activeRegion && activeRegion.description && currentStepIndex < activeRegion.description.length - 1) {
+      setCurrentStepIndex(currentStepIndex + 1);
+    }
+  };
+  
+  // Check if we can go to the next step
+  const hasNextStep = activeRegion?.description && currentStepIndex < activeRegion.description.length - 1;
 
   return (
     <div className="worksheet-container" ref={pdfContainerRef}>
@@ -258,6 +288,29 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
           title={region.name}
         />
       ))}
+      
+      {/* Text display area */}
+      <div className="worksheet-text-display">
+        {activeRegion ? (
+          <>
+            <h3 className="text-lg font-semibold mb-2">{activeRegion.name}</h3>
+            <div className="text-content">
+              {activeRegion.description && activeRegion.description[currentStepIndex]}
+            </div>
+            {hasNextStep && (
+              <Button 
+                onClick={handleNextStep} 
+                className="next-button mt-3"
+                variant="default"
+              >
+                Next <ChevronRight className="ml-1" />
+              </Button>
+            )}
+          </>
+        ) : (
+          <p className="text-gray-500">Click on a region to see information</p>
+        )}
+      </div>
       
       {numPages && numPages > 0 && !error && !loading && (
         <div className="worksheet-info">
