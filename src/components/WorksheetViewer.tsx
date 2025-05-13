@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Document, Page, pdfjs } from "react-pdf";
 import "../styles/Worksheet.css";
 
@@ -16,9 +16,17 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
-  const pdfPath = `/pdfs/${worksheetId}/${pageIndex}.pdf`;
+  // Fixed the PDF path to use the correct format for Vite public directory
+  const pdfPath = `${window.location.origin}/pdfs/${worksheetId}/${pageIndex}.pdf`;
+
+  // Reset error state when worksheetId or pageIndex changes
+  useEffect(() => {
+    setLoading(true);
+    setError(null);
+  }, [worksheetId, pageIndex]);
 
   const onDocumentLoadSuccess = ({ numPages }: { numPages: number }) => {
+    console.log("PDF loaded successfully with", numPages, "pages");
     setNumPages(numPages);
     setLoading(false);
   };
