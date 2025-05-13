@@ -15,37 +15,15 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
   const [numPages, setNumPages] = useState<number | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  const [pdfExists, setPdfExists] = useState<boolean>(true);
-
-  // Use a relative path instead of absolute with origin
+  
+  // Simply use the direct path to the PDF in the public folder
   const pdfPath = `/pdfs/${worksheetId}/${pageIndex}.pdf`;
   
+  // Reset loading and error state when worksheet or page changes
   useEffect(() => {
-    // Check if the PDF exists by making a fetch request
-    const checkPdfExists = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        
-        const response = await fetch(pdfPath);
-        if (!response.ok) {
-          console.error(`PDF not found at path: ${pdfPath}`);
-          setPdfExists(false);
-          setError("PDF not found or unable to load");
-          setLoading(false);
-        } else {
-          console.log(`PDF found at path: ${pdfPath}`);
-          setPdfExists(true);
-        }
-      } catch (err) {
-        console.error("Error checking PDF:", err);
-        setPdfExists(false);
-        setError("Error checking PDF availability");
-        setLoading(false);
-      }
-    };
-    
-    checkPdfExists();
+    setLoading(true);
+    setError(null);
+    console.log(`Attempting to load PDF from: ${pdfPath}`);
   }, [worksheetId, pageIndex, pdfPath]);
 
   const onDocumentLoadSuccess = ({ numPages }: { numPages: number }) => {
@@ -82,22 +60,20 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
         </div>
       )}
       
-      {pdfExists && (
-        <Document
-          file={pdfPath}
-          onLoadSuccess={onDocumentLoadSuccess}
-          onLoadError={onDocumentLoadError}
-          loading={null}
-        >
-          <Page
-            pageNumber={1}
-            renderTextLayer={false}
-            renderAnnotationLayer={false}
-            className="worksheet-page"
-            width={window.innerWidth > 768 ? 600 : undefined}
-          />
-        </Document>
-      )}
+      <Document
+        file={pdfPath}
+        onLoadSuccess={onDocumentLoadSuccess}
+        onLoadError={onDocumentLoadError}
+        loading={null}
+      >
+        <Page
+          pageNumber={1}
+          renderTextLayer={false}
+          renderAnnotationLayer={false}
+          className="worksheet-page"
+          width={window.innerWidth > 768 ? 600 : undefined}
+        />
+      </Document>
       
       {numPages && numPages > 0 && !error && !loading && (
         <div className="worksheet-info">
