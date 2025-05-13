@@ -8,6 +8,7 @@
   background-color: white;
   border-radius: 8px;
   padding: 1rem;
+  position: relative;
 }
 
 .worksheet-page {
@@ -31,6 +32,20 @@
   margin-top: 1rem;
   width: 100%;
   text-align: center;
+}
+
+/* Clickable Region Styles */
+.worksheet-region {
+  border: 2px dashed rgba(0, 123, 255, 0.5);
+  background-color: rgba(0, 123, 255, 0.1);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  z-index: 10;
+}
+
+.worksheet-region:hover {
+  background-color: rgba(0, 123, 255, 0.3);
+  border-color: rgba(0, 123, 255, 0.8);
 }
 
 /* Responsive adjustments */

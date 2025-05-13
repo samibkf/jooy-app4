@@ -1,8 +1,9 @@
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Document, Page, pdfjs } from "react-pdf";
 import "../styles/Worksheet.css";
 import { toast } from "@/components/ui/use-toast";
+import { RegionData, WorksheetMetadata } from "@/types/worksheet";
 
 // Set up the worker for react-pdf
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.js`;
@@ -21,6 +22,15 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
   // PDF Path with query parameter to prevent caching issues
   const pdfPath = `/pdfs/${worksheetId}/${pageIndex}.pdf?v=${retryCount}`;
   
+  // Metadata and region related states
+  const [metadata, setMetadata] = useState<WorksheetMetadata | null>(null);
+  const [filteredRegions, setFilteredRegions] = useState<RegionData[]>([]);
+  const [pdfDimensions, setPdfDimensions] = useState({ width: 0, height: 0 });
+  const [scaleFactor, setScaleFactor] = useState(1);
+  
+  // Reference to the PDF container for getting rendered dimensions
+  const pdfContainerRef = useRef<HTMLDivElement>(null);
+  
   useEffect(() => {
     setLoading(true);
     setError(null);
@@ -37,6 +47,68 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
       setRetryCount(0);
     }
   }, [worksheetId, pageIndex, pdfPath]);
+  
+  // Fetch metadata JSON
+  useEffect(() => {
+    const fetchMetadata = async () => {
+      try {
+        const response = await fetch(`/data/${worksheetId}.json`);
+        if (!response.ok) {
+          throw new Error(`Failed to fetch metadata: ${response.status} ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+        setMetadata(data);
+        console.log("Metadata loaded:", data);
+        
+        // Filter regions for current page
+        if (data && data.regions) {
+          const regions = data.regions.filter(
+            (region: RegionData) => region.page === pageIndex
+          );
+          setFilteredRegions(regions);
+          console.log(`Found ${regions.length} regions for page ${pageIndex}`);
+        }
+      } catch (err) {
+        console.error("Error loading metadata:", err);
+        toast({
+          title: "Failed to load worksheet data",
+          description: err instanceof Error ? err.message : "Unknown error",
+          variant: "destructive"
+        });
+      }
+    };
+    
+    if (worksheetId) {
+      fetchMetadata();
+    }
+  }, [worksheetId, pageIndex]);
+  
+  // Handle resize for scaling regions correctly
+  useEffect(() => {
+    const updateScaleFactor = () => {
+      if (pdfContainerRef.current && pdfDimensions.width > 0) {
+        const renderedWidth = pdfContainerRef.current.querySelector('.react-pdf__Page__canvas')?.clientWidth || 0;
+        if (renderedWidth > 0) {
+          const newScaleFactor = renderedWidth / pdfDimensions.width;
+          setScaleFactor(newScaleFactor);
+          console.log(`Scale factor updated: ${newScaleFactor} (rendered: ${renderedWidth}, natural: ${pdfDimensions.width})`);
+        }
+      }
+    };
+    
+    updateScaleFactor();
+    
+    // Set up ResizeObserver to handle window resize events
+    const resizeObserver = new ResizeObserver(updateScaleFactor);
+    if (pdfContainerRef.current) {
+      resizeObserver.observe(pdfContainerRef.current);
+    }
+    
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, [pdfDimensions.width, pdfContainerRef.current]);
 
   const handleRetry = () => {
     setRetryCount(prev => prev + 1);
@@ -68,9 +140,28 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
       variant: "destructive"
     });
   };
+  
+  // Handle page render success to get natural dimensions
+  const onPageLoadSuccess = (page: any) => {
+    const { width, height } = page.originalWidth 
+      ? { width: page.originalWidth, height: page.originalHeight }
+      : page.getViewport({ scale: 1 });
+      
+    setPdfDimensions({ width, height });
+    console.log(`PDF natural dimensions: ${width}x${height}`);
+  };
+  
+  // Handle region click
+  const handleRegionClick = (region: RegionData) => {
+    console.log(`Region clicked: ${region.name}`);
+    toast({
+      title: "Region Selected",
+      description: `You clicked on: ${region.name}`,
+    });
+  };
 
   return (
-    <div className="worksheet-container">
+    <div className="worksheet-container" ref={pdfContainerRef}>
       {loading && (
         <div className="worksheet-loading">
           <div className="animate-pulse flex justify-center items-center h-full">
@@ -109,8 +200,26 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
           renderAnnotationLayer={false}
           className="worksheet-page"
           width={window.innerWidth > 768 ? 600 : undefined}
+          onLoadSuccess={onPageLoadSuccess}
         />
       </Document>
+      
+      {/* Region overlays */}
+      {!loading && !error && filteredRegions.map((region) => (
+        <div
+          key={region.id}
+          className="worksheet-region"
+          style={{
+            position: 'absolute',
+            left: `${region.x * scaleFactor}px`,
+            top: `${region.y * scaleFactor}px`,
+            width: `${region.width * scaleFactor}px`,
+            height: `${region.height * scaleFactor}px`,
+          }}
+          onClick={() => handleRegionClick(region)}
+          title={region.name}
+        />
+      ))}
       
       {numPages && numPages > 0 && !error && !loading && (
         <div className="worksheet-info">
