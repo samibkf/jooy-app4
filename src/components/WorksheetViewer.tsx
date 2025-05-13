@@ -1,7 +1,7 @@
 
 import React, { useState } from "react";
 import { Document, Page, pdfjs } from "react-pdf";
-import "src/styles/Worksheet.css";
+import "../styles/Worksheet.css";
 
 // Set up the worker for react-pdf
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.js`;
