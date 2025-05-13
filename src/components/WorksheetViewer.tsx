@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from "react";
 import { Document, Page, pdfjs } from "react-pdf";
 import "../styles/Worksheet.css";
@@ -303,14 +302,22 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
     }
   };
   
-  // Toggle text mode on double click
+  // Toggle text mode on double click - Modified to stop audio when switching to PDF view
   const handleDoubleClick = () => {
     // Only toggle if there's an active region
     if (activeRegion) {
-      setIsTextMode(prev => !prev);
+      const newTextMode = !isTextMode;
+      setIsTextMode(newTextMode);
+      
+      // If switching to PDF mode, stop any playing audio
+      if (!newTextMode && audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.currentTime = 0;
+        console.log("Audio stopped due to switching to PDF view");
+      }
       
       // If switching to text mode, replay the current step's audio
-      if (!isTextMode && activeRegion) {
+      if (newTextMode && activeRegion) {
         playAudio(activeRegion.name, currentStepIndex);
       }
     }
@@ -390,35 +397,31 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
         ))}
       </div>
       
-      {/* Text display area - expanded in text mode */}
-      <div 
-        className={`worksheet-text-display ${isTextMode ? 'full-screen' : ''}`}
-        ref={textDisplayRef}
-      >
-        {activeRegion ? (
-          <>
-            <h3 className="text-lg font-semibold mb-2">{activeRegion.name}</h3>
-            <div className="text-content chat-messages">
-              {displayedMessages.map((message, index) => (
-                <div key={index} className="chat-message">
-                  <p>{message}</p>
-                </div>
-              ))}
-            </div>
-            {hasNextStep && (
-              <Button 
-                onClick={handleNextStep} 
-                className="next-button mt-3"
-                variant="default"
-              >
-                Next <ChevronRight className="ml-1" />
-              </Button>
-            )}
-          </>
-        ) : (
-          <p className="text-gray-500">Click on a region to see information</p>
-        )}
-      </div>
+      {/* Text display area - Only shown in text mode */}
+      {activeRegion && (
+        <div 
+          className={`worksheet-text-display ${isTextMode ? 'full-screen' : 'hidden'}`}
+          ref={textDisplayRef}
+        >
+          <h3 className="text-lg font-semibold mb-2">{activeRegion.name}</h3>
+          <div className="text-content chat-messages">
+            {displayedMessages.map((message, index) => (
+              <div key={index} className="chat-message">
+                <p>{message}</p>
+              </div>
+            ))}
+          </div>
+          {hasNextStep && isTextMode && (
+            <Button 
+              onClick={handleNextStep} 
+              className="next-button mt-3"
+              variant="default"
+            >
+              Next <ChevronRight className="ml-1" />
+            </Button>
+          )}
+        </div>
+      )}
       
       {!isTextMode && numPages && numPages > 0 && !error && !loading && (
         <div className="worksheet-info">

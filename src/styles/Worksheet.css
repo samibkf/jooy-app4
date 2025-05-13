@@ -1,4 +1,3 @@
-
 .worksheet-container {
   display: flex;
   flex-direction: column;
@@ -93,6 +92,11 @@
   position: relative;
   overflow-y: auto; /* Enable vertical scrolling */
   max-height: 400px; /* Limit height when not in full screen */
+}
+
+/* Hide text display when not in text mode */
+.worksheet-text-display.hidden {
+  display: none;
 }
 
 /* Full screen text display styles */
