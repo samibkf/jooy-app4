@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from "react";
 import { Document, Page, pdfjs } from "react-pdf";
 import "../styles/Worksheet.css";
@@ -410,18 +409,22 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
               file={pdfPath}
               className="clear-document"
             >
-              <Page
-                pageNumber={1}
-                renderTextLayer={false}
-                renderAnnotationLayer={false}
-                width={window.innerWidth > 768 ? 600 : undefined}
-                className="clear-page"
+              {/* Fix: Moved the styling to the parent div and removed the style prop from Page */}
+              <div
                 style={{
                   position: 'absolute',
                   left: `-${region.x * scaleFactor}px`,
                   top: `-${region.y * scaleFactor}px`,
                 }}
-              />
+              >
+                <Page
+                  pageNumber={1}
+                  renderTextLayer={false}
+                  renderAnnotationLayer={false}
+                  width={window.innerWidth > 768 ? 600 : undefined}
+                  className="clear-page"
+                />
+              </div>
             </Document>
           </div>
         ))}
