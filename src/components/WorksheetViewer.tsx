@@ -15,15 +15,38 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
   const [numPages, setNumPages] = useState<number | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [pdfExists, setPdfExists] = useState<boolean>(true);
 
-  // Fixed the PDF path to use the correct format for Vite public directory
-  const pdfPath = `${window.location.origin}/pdfs/${worksheetId}/${pageIndex}.pdf`;
-
-  // Reset error state when worksheetId or pageIndex changes
+  // Use a relative path instead of absolute with origin
+  const pdfPath = `/pdfs/${worksheetId}/${pageIndex}.pdf`;
+  
   useEffect(() => {
-    setLoading(true);
-    setError(null);
-  }, [worksheetId, pageIndex]);
+    // Check if the PDF exists by making a fetch request
+    const checkPdfExists = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        
+        const response = await fetch(pdfPath);
+        if (!response.ok) {
+          console.error(`PDF not found at path: ${pdfPath}`);
+          setPdfExists(false);
+          setError("PDF not found or unable to load");
+          setLoading(false);
+        } else {
+          console.log(`PDF found at path: ${pdfPath}`);
+          setPdfExists(true);
+        }
+      } catch (err) {
+        console.error("Error checking PDF:", err);
+        setPdfExists(false);
+        setError("Error checking PDF availability");
+        setLoading(false);
+      }
+    };
+    
+    checkPdfExists();
+  }, [worksheetId, pageIndex, pdfPath]);
 
   const onDocumentLoadSuccess = ({ numPages }: { numPages: number }) => {
     console.log("PDF loaded successfully with", numPages, "pages");
@@ -53,23 +76,28 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
           <p className="text-sm text-gray-500 mt-2">
             The worksheet you're looking for might not exist. Please check the QR code and try again.
           </p>
+          <p className="text-xs text-gray-400 mt-1">
+            Looking for: {pdfPath}
+          </p>
         </div>
       )}
       
-      <Document
-        file={pdfPath}
-        onLoadSuccess={onDocumentLoadSuccess}
-        onLoadError={onDocumentLoadError}
-        loading={null}
-      >
-        <Page
-          pageNumber={1}
-          renderTextLayer={false}
-          renderAnnotationLayer={false}
-          className="worksheet-page"
-          width={window.innerWidth > 768 ? 600 : undefined}
-        />
-      </Document>
+      {pdfExists && (
+        <Document
+          file={pdfPath}
+          onLoadSuccess={onDocumentLoadSuccess}
+          onLoadError={onDocumentLoadError}
+          loading={null}
+        >
+          <Page
+            pageNumber={1}
+            renderTextLayer={false}
+            renderAnnotationLayer={false}
+            className="worksheet-page"
+            width={window.innerWidth > 768 ? 600 : undefined}
+          />
+        </Document>
+      )}
       
       {numPages && numPages > 0 && !error && !loading && (
         <div className="worksheet-info">
