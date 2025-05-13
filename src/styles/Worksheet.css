@@ -1,0 +1,62 @@
+
+.worksheet-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  max-width: 100%;
+  overflow-x: auto;
+  background-color: white;
+  border-radius: 8px;
+  padding: 1rem;
+}
+
+.worksheet-page {
+  max-width: 100%;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  border-radius: 4px;
+}
+
+.worksheet-loading,
+.worksheet-error {
+  width: 100%;
+  min-height: 400px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+}
+
+.worksheet-info {
+  margin-top: 1rem;
+  width: 100%;
+  text-align: center;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .worksheet-page {
+    width: 100% !important;
+    height: auto !important;
+  }
+}
+
+/* PDF document canvas */
+.react-pdf__Document {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.react-pdf__Page {
+  margin-bottom: 1rem;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.react-pdf__Page__canvas {
+  max-width: 100%;
+  height: auto !important;
+}
