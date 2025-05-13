@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from "react";
 import { Document, Page, pdfjs } from "react-pdf";
 import "../styles/Worksheet.css";
@@ -39,6 +40,9 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
   
   // New state for displayed messages in chat-style
   const [displayedMessages, setDisplayedMessages] = useState<string[]>([]);
+  
+  // New state for DRM protection
+  const [isCurrentPageDrmProtected, setIsCurrentPageDrmProtected] = useState<boolean>(false);
   
   // Reference to the PDF container and PDF itself for getting rendered dimensions
   const pdfContainerRef = useRef<HTMLDivElement>(null);
@@ -93,6 +97,14 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
         const data = await response.json();
         setMetadata(data);
         console.log("Metadata loaded:", data);
+        
+        // Check if current page is DRM protected
+        if (data.drmProtectedPages && Array.isArray(data.drmProtectedPages)) {
+          setIsCurrentPageDrmProtected(data.drmProtectedPages.includes(pageIndex));
+          console.log(`Page ${pageIndex} DRM protected: ${data.drmProtectedPages.includes(pageIndex)}`);
+        } else {
+          setIsCurrentPageDrmProtected(false);
+        }
         
         // Filter regions for current page
         if (data && data.regions) {
@@ -362,7 +374,7 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
       )}
       
       {/* PDF Document and regions - hidden in text mode */}
-      <div className={`worksheet-pdf-container ${isTextMode ? 'hidden' : ''}`}>
+      <div className={`worksheet-pdf-container ${isTextMode ? 'hidden' : ''} ${isCurrentPageDrmProtected ? 'drm-active' : ''}`}>
         <Document
           file={pdfPath}
           onLoadSuccess={onDocumentLoadSuccess}
@@ -373,13 +385,48 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
             pageNumber={1}
             renderTextLayer={false}
             renderAnnotationLayer={false}
-            className="worksheet-page"
+            className={`worksheet-page ${isCurrentPageDrmProtected ? 'blurred' : ''}`}
             width={window.innerWidth > 768 ? 600 : undefined}
             onLoadSuccess={onPageLoadSuccess}
           />
         </Document>
         
-        {/* Region overlays */}
+        {/* Unblurred region overlays for DRM protected pages */}
+        {isCurrentPageDrmProtected && !isTextMode && !loading && !error && filteredRegions.map((region) => (
+          <div
+            key={`clear-${region.id}`}
+            className="worksheet-clear-region"
+            style={{
+              position: 'absolute',
+              left: `${region.x * scaleFactor + pdfPosition.left}px`,
+              top: `${region.y * scaleFactor + pdfPosition.top}px`,
+              width: `${region.width * scaleFactor}px`,
+              height: `${region.height * scaleFactor}px`,
+              overflow: 'hidden',
+              zIndex: 5,
+            }}
+          >
+            <Document
+              file={pdfPath}
+              className="clear-document"
+            >
+              <Page
+                pageNumber={1}
+                renderTextLayer={false}
+                renderAnnotationLayer={false}
+                width={window.innerWidth > 768 ? 600 : undefined}
+                className="clear-page"
+                style={{
+                  position: 'absolute',
+                  left: `-${region.x * scaleFactor}px`,
+                  top: `-${region.y * scaleFactor}px`,
+                }}
+              />
+            </Document>
+          </div>
+        ))}
+        
+        {/* Clickable region overlays */}
         {!loading && !error && filteredRegions.map((region) => (
           <div
             key={region.id}
@@ -390,6 +437,7 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
               top: `${region.y * scaleFactor + pdfPosition.top}px`,
               width: `${region.width * scaleFactor}px`,
               height: `${region.height * scaleFactor}px`,
+              zIndex: 10,
             }}
             onClick={() => handleRegionClick(region)}
             title={region.name}
@@ -434,6 +482,12 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
       {isTextMode && (
         <div className="text-mode-instructions">
           <p>Double-click anywhere to return to PDF view</p>
+        </div>
+      )}
+      
+      {isCurrentPageDrmProtected && !isTextMode && !loading && !error && (
+        <div className="drm-notice">
+          <p>This page has content protection enabled</p>
         </div>
       )}
     </div>
