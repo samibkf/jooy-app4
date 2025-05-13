@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from "react";
 import { Document, Page, pdfjs } from "react-pdf";
 import "../styles/Worksheet.css";
@@ -39,6 +38,9 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
   const pdfContainerRef = useRef<HTMLDivElement>(null);
   const pdfRef = useRef<HTMLCanvasElement>(null);
   
+  // Audio element reference
+  const audioRef = useRef<HTMLAudioElement>(null);
+  
   useEffect(() => {
     setLoading(true);
     setError(null);
@@ -58,6 +60,12 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
     // Reset active region when worksheet or page changes
     setActiveRegion(null);
     setCurrentStepIndex(0);
+    
+    // Stop any playing audio when worksheet or page changes
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+    }
   }, [worksheetId, pageIndex, pdfPath]);
   
   // Fetch metadata JSON
@@ -199,6 +207,32 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
     }, 100); // Small delay to ensure canvas is rendered
   };
   
+  // Function to play audio for a region and step
+  const playAudio = (regionName: string, stepIndex: number) => {
+    if (!audioRef.current) return;
+    
+    // Construct the audio file path
+    const audioPath = `/audio/${worksheetId}/${regionName}_${stepIndex + 1}.mp3`;
+    
+    // Set the source and load the audio
+    audioRef.current.src = audioPath;
+    
+    // Handle audio loading errors
+    audioRef.current.onerror = () => {
+      console.error(`Failed to load audio: ${audioPath}`);
+      toast({
+        title: "Audio Error",
+        description: "Could not load the audio file",
+        variant: "destructive"
+      });
+    };
+    
+    // Play the audio
+    audioRef.current.play().catch(err => {
+      console.error("Error playing audio:", err);
+    });
+  };
+  
   // Handle region click
   const handleRegionClick = (region: RegionData) => {
     console.log(`Region clicked: ${region.name}`);
@@ -206,10 +240,16 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
     // If clicking the same region, reset to first step
     if (activeRegion && activeRegion.id === region.id) {
       setCurrentStepIndex(0);
+      
+      // Play audio for the first step
+      playAudio(region.name, 0);
     } else {
       // If clicking a different region, set it as active and start from beginning
       setActiveRegion(region);
       setCurrentStepIndex(0);
+      
+      // Play audio for the first step
+      playAudio(region.name, 0);
     }
     
     toast({
@@ -221,7 +261,13 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
   // Handle Next button click
   const handleNextStep = () => {
     if (activeRegion && activeRegion.description && currentStepIndex < activeRegion.description.length - 1) {
-      setCurrentStepIndex(currentStepIndex + 1);
+      const nextStepIndex = currentStepIndex + 1;
+      setCurrentStepIndex(nextStepIndex);
+      
+      // Play audio for the next step
+      if (activeRegion) {
+        playAudio(activeRegion.name, nextStepIndex);
+      }
     }
   };
   
@@ -230,6 +276,9 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
 
   return (
     <div className="worksheet-container" ref={pdfContainerRef}>
+      {/* Audio element for playback */}
+      <audio ref={audioRef} className="hidden" />
+      
       {loading && (
         <div className="worksheet-loading">
           <div className="animate-pulse flex justify-center items-center h-full">
