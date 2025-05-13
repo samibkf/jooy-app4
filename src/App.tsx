@@ -8,6 +8,7 @@ import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import QrScannerPage from "./pages/QrScannerPage";
 import WorksheetPage from "./pages/WorksheetPage";
+import QRScannerButton from "./components/QRScannerButton";
 
 const queryClient = new QueryClient();
 
@@ -22,6 +23,11 @@ const App = () => (
           <Route path="/worksheet/:id/:n" element={<WorksheetPage />} />
           <Route path="/home" element={<Index />} />
           <Route path="*" element={<NotFound />} />
+        </Routes>
+        {/* Add the QR Scanner button to all routes except the QR scanner page */}
+        <Routes>
+          <Route path="/" element={null} />
+          <Route path="*" element={<QRScannerButton />} />
         </Routes>
       </BrowserRouter>
     </TooltipProvider>

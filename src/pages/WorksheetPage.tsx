@@ -3,7 +3,6 @@ import React from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import WorksheetViewer from "@/components/WorksheetViewer";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft } from "lucide-react";
 
 const WorksheetPage: React.FC = () => {
   const { id, n } = useParams<{ id: string; n: string }>();
@@ -43,14 +42,6 @@ const WorksheetPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 p-4">
-      <Button 
-        onClick={goBack} 
-        className="mb-4 bg-blue-500 hover:bg-blue-600"
-        variant="outline"
-      >
-        <ArrowLeft className="mr-2 h-4 w-4" /> Back to Scanner
-      </Button>
-      
       <div className="bg-white rounded-lg shadow-md p-4">
         <h1 className="text-xl font-bold mb-4 text-blue-600">
           Worksheet: {id} - Page {pageIndex}
