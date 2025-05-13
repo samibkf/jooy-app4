@@ -27,9 +27,11 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
   const [filteredRegions, setFilteredRegions] = useState<RegionData[]>([]);
   const [pdfDimensions, setPdfDimensions] = useState({ width: 0, height: 0 });
   const [scaleFactor, setScaleFactor] = useState(1);
+  const [pdfPosition, setPdfPosition] = useState({ top: 0, left: 0 });
   
-  // Reference to the PDF container for getting rendered dimensions
+  // Reference to the PDF container and PDF itself for getting rendered dimensions
   const pdfContainerRef = useRef<HTMLDivElement>(null);
+  const pdfRef = useRef<HTMLCanvasElement>(null);
   
   useEffect(() => {
     setLoading(true);
@@ -84,27 +86,44 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
     }
   }, [worksheetId, pageIndex]);
   
-  // Handle resize for scaling regions correctly
+  // Calculate PDF position and scale factor more accurately
   useEffect(() => {
-    const updateScaleFactor = () => {
-      if (pdfContainerRef.current && pdfDimensions.width > 0) {
-        const renderedWidth = pdfContainerRef.current.querySelector('.react-pdf__Page__canvas')?.clientWidth || 0;
-        if (renderedWidth > 0) {
-          const newScaleFactor = renderedWidth / pdfDimensions.width;
+    const calculatePdfPositionAndScale = () => {
+      if (pdfContainerRef.current) {
+        const pdfCanvas = pdfContainerRef.current.querySelector('.react-pdf__Page__canvas') as HTMLCanvasElement | null;
+        
+        if (pdfCanvas && pdfDimensions.width > 0) {
+          // Get the bounding rectangles
+          const containerRect = pdfContainerRef.current.getBoundingClientRect();
+          const canvasRect = pdfCanvas.getBoundingClientRect();
+          
+          // Calculate the PDF position relative to its container
+          const top = canvasRect.top - containerRect.top;
+          const left = canvasRect.left - containerRect.left;
+          setPdfPosition({ top, left });
+          
+          // Calculate scale factor based on rendered width vs natural width
+          const newScaleFactor = canvasRect.width / pdfDimensions.width;
           setScaleFactor(newScaleFactor);
-          console.log(`Scale factor updated: ${newScaleFactor} (rendered: ${renderedWidth}, natural: ${pdfDimensions.width})`);
+          
+          console.log(`PDF position updated: top=${top}, left=${left}`);
+          console.log(`Scale factor updated: ${newScaleFactor} (rendered: ${canvasRect.width}, natural: ${pdfDimensions.width})`);
         }
       }
     };
     
-    updateScaleFactor();
+    calculatePdfPositionAndScale();
     
     // Set up ResizeObserver to handle window resize events
-    const resizeObserver = new ResizeObserver(updateScaleFactor);
+    const resizeObserver = new ResizeObserver(() => {
+      calculatePdfPositionAndScale();
+    });
+    
     if (pdfContainerRef.current) {
       resizeObserver.observe(pdfContainerRef.current);
     }
     
+    // Clean up observer
     return () => {
       resizeObserver.disconnect();
     };
@@ -149,6 +168,25 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
       
     setPdfDimensions({ width, height });
     console.log(`PDF natural dimensions: ${width}x${height}`);
+    
+    // Trigger position calculation when page loads
+    setTimeout(() => {
+      const pdfCanvas = pdfContainerRef.current?.querySelector('.react-pdf__Page__canvas') as HTMLCanvasElement | null;
+      if (pdfCanvas) {
+        const containerRect = pdfContainerRef.current!.getBoundingClientRect();
+        const canvasRect = pdfCanvas.getBoundingClientRect();
+        
+        const top = canvasRect.top - containerRect.top;
+        const left = canvasRect.left - containerRect.left;
+        setPdfPosition({ top, left });
+        
+        const newScaleFactor = canvasRect.width / width;
+        setScaleFactor(newScaleFactor);
+        
+        console.log(`Initial PDF position: top=${top}, left=${left}`);
+        console.log(`Initial scale factor: ${newScaleFactor}`);
+      }
+    }, 100); // Small delay to ensure canvas is rendered
   };
   
   // Handle region click
@@ -211,8 +249,8 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
           className="worksheet-region"
           style={{
             position: 'absolute',
-            left: `${region.x * scaleFactor}px`,
-            top: `${region.y * scaleFactor}px`,
+            left: `${region.x * scaleFactor + pdfPosition.left}px`,
+            top: `${region.y * scaleFactor + pdfPosition.top}px`,
             width: `${region.width * scaleFactor}px`,
             height: `${region.height * scaleFactor}px`,
           }}
