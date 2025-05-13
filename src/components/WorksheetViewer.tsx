@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from "react";
 import { Document, Page, pdfjs } from "react-pdf";
 import "../styles/Worksheet.css";
@@ -37,12 +38,18 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
   // New state for UI mode (text mode vs PDF mode)
   const [isTextMode, setIsTextMode] = useState<boolean>(false);
   
+  // New state for displayed messages in chat-style
+  const [displayedMessages, setDisplayedMessages] = useState<string[]>([]);
+  
   // Reference to the PDF container and PDF itself for getting rendered dimensions
   const pdfContainerRef = useRef<HTMLDivElement>(null);
   const pdfRef = useRef<HTMLCanvasElement>(null);
   
   // Audio element reference
   const audioRef = useRef<HTMLAudioElement>(null);
+  
+  // Ref for text display area to enable auto-scrolling
+  const textDisplayRef = useRef<HTMLDivElement>(null);
   
   useEffect(() => {
     setLoading(true);
@@ -63,6 +70,7 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
     // Reset active region when worksheet or page changes
     setActiveRegion(null);
     setCurrentStepIndex(0);
+    setDisplayedMessages([]);
     
     // Reset text mode when worksheet or page changes
     setIsTextMode(false);
@@ -152,6 +160,14 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
       resizeObserver.disconnect();
     };
   }, [pdfDimensions.width, pdfContainerRef.current]);
+
+  // Auto-scroll the text display area to the bottom when displayedMessages changes
+  useEffect(() => {
+    if (textDisplayRef.current && displayedMessages.length > 0) {
+      const textDisplay = textDisplayRef.current;
+      textDisplay.scrollTop = textDisplay.scrollHeight;
+    }
+  }, [displayedMessages]);
 
   const handleRetry = () => {
     setRetryCount(prev => prev + 1);
@@ -243,20 +259,21 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
   const handleRegionClick = (region: RegionData) => {
     console.log(`Region clicked: ${region.name}`);
     
-    // If clicking the same region, reset to first step
-    if (activeRegion && activeRegion.id === region.id) {
-      setCurrentStepIndex(0);
-      
-      // Play audio for the first step
-      playAudio(region.name, 0);
+    // Reset step index whether clicking same or different region
+    setCurrentStepIndex(0);
+    
+    // Initialize displayed messages with just the first message
+    if (region.description && region.description.length > 0) {
+      setDisplayedMessages([region.description[0]]);
     } else {
-      // If clicking a different region, set it as active and start from beginning
-      setActiveRegion(region);
-      setCurrentStepIndex(0);
-      
-      // Play audio for the first step
-      playAudio(region.name, 0);
+      setDisplayedMessages([]);
     }
+    
+    // Set active region
+    setActiveRegion(region);
+    
+    // Play audio for the first step
+    playAudio(region.name, 0);
     
     // Set to text mode when a region is clicked
     setIsTextMode(true);
@@ -267,11 +284,17 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
     });
   };
   
-  // Handle Next button click
+  // Handle Next button click - now appends the next message to displayedMessages
   const handleNextStep = () => {
     if (activeRegion && activeRegion.description && currentStepIndex < activeRegion.description.length - 1) {
       const nextStepIndex = currentStepIndex + 1;
       setCurrentStepIndex(nextStepIndex);
+      
+      // Add the next message to displayed messages array
+      setDisplayedMessages(prevMessages => [
+        ...prevMessages,
+        activeRegion.description[nextStepIndex]
+      ]);
       
       // Play audio for the next step
       if (activeRegion) {
@@ -368,12 +391,19 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
       </div>
       
       {/* Text display area - expanded in text mode */}
-      <div className={`worksheet-text-display ${isTextMode ? 'full-screen' : ''}`}>
+      <div 
+        className={`worksheet-text-display ${isTextMode ? 'full-screen' : ''}`}
+        ref={textDisplayRef}
+      >
         {activeRegion ? (
           <>
             <h3 className="text-lg font-semibold mb-2">{activeRegion.name}</h3>
-            <div className="text-content">
-              {activeRegion.description && activeRegion.description[currentStepIndex]}
+            <div className="text-content chat-messages">
+              {displayedMessages.map((message, index) => (
+                <div key={index} className="chat-message">
+                  <p>{message}</p>
+                </div>
+              ))}
             </div>
             {hasNextStep && (
               <Button 

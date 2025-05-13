@@ -91,6 +91,8 @@
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
   transition: all 0.3s ease;
   position: relative;
+  overflow-y: auto; /* Enable vertical scrolling */
+  max-height: 400px; /* Limit height when not in full screen */
 }
 
 /* Full screen text display styles */
@@ -134,6 +136,37 @@
 .worksheet-text-display .text-content {
   font-size: 1rem;
   line-height: 1.6;
+}
+
+/* Chat messages styling */
+.chat-messages {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.chat-message {
+  padding: 0.75rem 1rem;
+  background-color: #ffffff;
+  border-left: 3px solid #0d6efd;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.chat-message p {
+  margin: 0;
 }
 
 .next-button {
