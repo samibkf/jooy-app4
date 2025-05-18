@@ -1,3 +1,4 @@
+
 .worksheet-container {
   display: flex;
   flex-direction: column;
@@ -103,6 +104,28 @@
   border-color: rgba(0, 123, 255, 0.8);
   border-width: 3px;
   transform: scale(1.01);
+}
+
+/* Video Element Styles */
+.video-element {
+  width: 100%;
+  max-width: 400px;
+  margin: 0 auto 1.5rem;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  background-color: #ffffff;
+  transition: all 0.3s ease;
+  display: block;
+}
+
+.video-element.hidden {
+  display: none;
+}
+
+@media (min-width: 768px) {
+  .video-element {
+    max-width: 500px;
+  }
 }
 
 /* Text Display Area Styles */
@@ -250,6 +273,10 @@
     height: 100vh;
     max-height: 100vh;
     border-radius: 0;
+  }
+  
+  .video-element {
+    max-width: 100%;
   }
 }
 
