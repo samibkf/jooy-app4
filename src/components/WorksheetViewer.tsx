@@ -196,98 +196,65 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
     }
   }, [displayedMessages]);
 
-  // Fixed video-audio synchronization for better cross-browser compatibility
+  // Fix issue 1: Refactored video-audio synchronization
   useEffect(() => {
     if (!videoRef.current || !audioRef.current) return;
     
     const video = videoRef.current;
     const audio = audioRef.current;
     
-    let animationFrameId: number;
-    let videoPlaying = false;
-    
     // Event handlers for audio
     const handleAudioPlaying = () => {
       console.log('Audio started playing - synchronizing with main animation loop');
       setIsAudioPlaying(true);
-      videoPlaying = true;
       
-      // Force the video to main animation loop (seconds 10-20)
+      // Ensure the video is at the main animation loop (seconds 10-20)
       if (video.currentTime < 10 || video.currentTime >= 20) {
         video.currentTime = 10;
       }
       
-      // Ensure video is playing with a more robust approach
-      const playVideoIfNeeded = () => {
-        if (videoPlaying && (video.paused || video.currentTime < 10 || video.currentTime >= 20)) {
-          // If video is paused or outside of main loop range, fix it
-          if (video.paused) {
-            video.play().catch(err => {
-              console.error("Error playing video:", err);
-              // If browser blocks autoplay, try again with user interaction
-              document.addEventListener('click', function playOnce() {
-                video.play().catch(e => console.error("Still can't play video:", e));
-                document.removeEventListener('click', playOnce);
-              }, { once: true });
-            });
-          }
-          
-          // Keep video in main animation loop when audio is playing
-          if (video.currentTime < 10 || video.currentTime >= 20) {
-            video.currentTime = 10;
-          }
-        }
-        
-        if (videoPlaying) {
-          animationFrameId = requestAnimationFrame(playVideoIfNeeded);
-        }
-      };
-      
-      // Start the animation frame loop for continuous monitoring
-      playVideoIfNeeded();
+      // Ensure video is playing
+      if (video.paused) {
+        video.play().catch(err => console.error("Error playing video:", err));
+      }
     };
     
     const handleAudioPause = () => {
       console.log('Audio paused - returning to intro/idle loop');
       setIsAudioPlaying(false);
-      videoPlaying = false;
       
-      // Cancel the animation frame to stop monitoring
-      if (animationFrameId) {
-        cancelAnimationFrame(animationFrameId);
-      }
-      
-      // Transition to intro loop
-      if (video.currentTime >= 10) {
-        video.currentTime = 0;
-      }
+      // When audio pauses, we don't pause the video - we let it continue
+      // but it will transition back to intro loop via timeupdate handler
     };
     
     const handleAudioEnded = () => {
       console.log('Audio ended');
       setIsAudioPlaying(false);
-      videoPlaying = false;
-      
-      // Cancel the animation frame to stop monitoring
-      if (animationFrameId) {
-        cancelAnimationFrame(animationFrameId);
-      }
-      
-      // Transition to intro loop
-      if (video.currentTime >= 10) {
-        video.currentTime = 0;
-      }
+      // Don't automatically progress to next step - user must click Next button
     };
     
     // Event handler for video
     const handleVideoTimeUpdate = () => {
-      // Only manage loop transitions when not actively monitoring via animation frame
-      if (!videoPlaying) {
-        // If the video is in the main animation loop but audio isn't playing
-        if (video.currentTime >= 10 && !isAudioPlaying) {
-          // Loop back to intro animation
-          video.currentTime = 0;
-        }
+      if (video.paused) {
+        // If video somehow paused, restart it
+        video.play().catch(err => console.error("Error playing video:", err));
+      }
+      
+      // If the video is in the main animation loop (10-20 seconds)
+      if (video.currentTime >= 20) {
+        // Loop back to second 10 (start of main animation)
+        video.currentTime = 10;
+      }
+      
+      // If the video is in the intro/idle loop (0-10 seconds) and audio is playing
+      if (video.currentTime >= 10 && !isAudioPlaying) {
+        // Loop back to second 0 (start of intro/idle animation)
+        video.currentTime = 0;
+      }
+      
+      // If audio is playing but video is in intro loop, jump to main loop
+      if (isAudioPlaying && video.currentTime < 10) {
+        video.currentTime = 10;
       }
     };
     
@@ -297,34 +264,12 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
     audio.addEventListener('ended', handleAudioEnded);
     video.addEventListener('timeupdate', handleVideoTimeUpdate);
     
-    // Ensure video starts playing for better browser compatibility
-    const ensureVideoPlaying = () => {
-      if (video.paused) {
-        video.muted = true; // Ensure muted for autoplay policy
-        video.play().catch(err => {
-          console.error("Initial video play error:", err);
-        });
-      }
-    };
-    
-    // Try to start the video
-    ensureVideoPlaying();
-    
     return () => {
       // Remove event listeners on cleanup
       audio.removeEventListener('playing', handleAudioPlaying);
       audio.removeEventListener('pause', handleAudioPause);
       audio.removeEventListener('ended', handleAudioEnded);
       video.removeEventListener('timeupdate', handleVideoTimeUpdate);
-      
-      // Cancel any pending animation frame
-      if (animationFrameId) {
-        cancelAnimationFrame(animationFrameId);
-      }
-      
-      // Stop media on cleanup
-      video.pause();
-      audio.pause();
     };
   }, [videoRef.current, audioRef.current, isAudioPlaying]);
 
@@ -388,71 +333,35 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
     }, 100); // Small delay to ensure canvas is rendered
   };
   
-  // Function to play audio segment with proper debugging and error handling
+  // Function to play audio segment with proper video synchronization
   const playAudioSegment = (regionName: string, stepIndex: number) => {
-    if (!audioRef.current) {
-      console.error("Audio reference is not available");
-      return;
-    }
+    if (!audioRef.current) return;
     
     // Construct the audio file path
     const audioPath = `/audio/${worksheetId}/${regionName}_${stepIndex + 1}.mp3`;
-    console.log(`Attempting to play audio: ${audioPath}`);
     
     // Set the source and load the audio
     audioRef.current.src = audioPath;
     
-    // Log when audio is loaded
-    audioRef.current.onloadeddata = () => {
-      console.log(`Audio loaded successfully: ${audioPath}`);
-    };
-    
     // Handle audio loading errors
-    audioRef.current.onerror = (e) => {
-      console.error(`Failed to load audio: ${audioPath}`, e);
+    audioRef.current.onerror = () => {
+      console.error(`Failed to load audio: ${audioPath}`);
       toast({
         title: "Audio Error",
-        description: `Could not load the audio file: ${audioPath}`,
+        description: "Could not load the audio file",
         variant: "destructive"
       });
       setIsAudioPlaying(false);
     };
     
-    // Play the audio with better error handling
-    console.log("Attempting to play audio now...");
-    const playPromise = audioRef.current.play();
-    
-    if (playPromise !== undefined) {
-      playPromise
-        .then(() => {
-          console.log("Audio playback started successfully");
-        })
-        .catch(err => {
-          console.error("Error playing audio:", err);
-          
-          // Try again with user interaction if autoplay was blocked
-          toast({
-            title: "Audio playback blocked",
-            description: "Click anywhere to enable audio",
-            variant: "destructive"
-          });
-          
-          // Add a one-time click listener to the document
-          document.addEventListener('click', function playOnUserAction() {
-            if (audioRef.current) {
-              audioRef.current.play()
-                .then(() => console.log("Audio playback started after user interaction"))
-                .catch(e => console.error("Still can't play audio after user interaction:", e));
-            }
-            document.removeEventListener('click', playOnUserAction);
-          }, { once: true });
-          
-          setIsAudioPlaying(false);
-        });
-    }
+    // Play the audio
+    audioRef.current.play().catch(err => {
+      console.error("Error playing audio:", err);
+      setIsAudioPlaying(false);
+    });
   };
   
-  // Handle region click with improved audio handling
+  // Handle region click
   const handleRegionClick = (region: RegionData) => {
     console.log(`Region clicked: ${region.name}`);
     
@@ -472,10 +381,10 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
         videoRef.current.play().catch(err => console.error("Error playing video:", err));
       }
       
-      // Play audio for the first step with a slight delay to ensure video is ready
+      // Play audio for the first step with a slight delay
       setTimeout(() => {
         playAudioSegment(region.name, 0);
-      }, 800);
+      }, 500);
     } else {
       setDisplayedMessages([]);
       // Hide video if region has no description
@@ -494,13 +403,12 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
     });
   };
   
-  // Handle Next button click with improved audio handling
+  // Handle Next button click - now appends the next message to displayedMessages
   const handleNextStep = () => {
     if (activeRegion && activeRegion.description && currentStepIndex < activeRegion.description.length - 1) {
       // Stop current audio if playing
       if (audioRef.current) {
         audioRef.current.pause();
-        audioRef.current.currentTime = 0;
       }
       
       const nextStepIndex = currentStepIndex + 1;
@@ -512,10 +420,10 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
         activeRegion.description[nextStepIndex]
       ]);
       
-      // Play audio for the next step with longer delay to allow video to sync properly
+      // Play audio for the next step with delay to allow video to sync
       setTimeout(() => {
         playAudioSegment(activeRegion.name, nextStepIndex);
-      }, 800);
+      }, 500);
     }
   };
   
@@ -566,14 +474,8 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
       ref={pdfContainerRef}
       onDoubleClick={handleDoubleClick}
     >
-      {/* Audio element for playback - fixed with controls for debugging */}
-      <audio 
-        ref={audioRef} 
-        className="hidden"
-        preload="auto" 
-        // Uncomment for debugging
-        // controls 
-      />
+      {/* Audio element for playback */}
+      <audio ref={audioRef} className="hidden" />
       
       {/* PDF Document and regions - hidden in text mode */}
       <div className={`worksheet-pdf-container ${isTextMode ? 'hidden' : ''} ${isCurrentPageDrmProtected ? 'drm-active' : ''}`}>
@@ -664,7 +566,6 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
             muted
             autoPlay
             playsInline
-            loop={!isAudioPlaying}
             preload="auto"
           />
           
