@@ -1,4 +1,3 @@
-
 .worksheet-container {
   display: flex;
   flex-direction: column;
@@ -110,12 +109,13 @@
 .video-element {
   width: 100%;
   max-width: 400px;
-  margin: 0 auto 1.5rem;
+  margin: 1.5rem auto 1rem;
   border-radius: 12px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   background-color: #ffffff;
   transition: all 0.3s ease;
   display: block;
+  z-index: 60;
 }
 
 .video-element.hidden {
@@ -126,6 +126,26 @@
   .video-element {
     max-width: 500px;
   }
+}
+
+/* Text Display Container - New parent container for video and text */
+.worksheet-text-display-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  max-width: 90%;
+  margin: 0 auto;
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.worksheet-text-display-container.hidden {
+  display: none;
+}
+
+.worksheet-text-display-container.active {
+  animation: fadeIn 0.3s ease-in-out;
 }
 
 /* Text Display Area Styles */
@@ -145,42 +165,20 @@
   max-height: 400px; /* Limit height when not in full screen */
 }
 
-/* Hide text display when not in text mode */
-.worksheet-text-display.hidden {
-  display: none;
-}
-
 /* Full screen text display styles */
-.worksheet-text-display.full-screen {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  max-width: 90%;
+.worksheet-text-display-container.active .worksheet-text-display {
   width: 90%;
-  min-height: 70vh;
-  max-height: 80vh;
-  margin: 0;
+  max-width: 90%;
+  min-height: 50vh;
+  max-height: 60vh;
+  margin: 0 auto;
   padding: 2rem;
   border-radius: 16px;
   background-color: white;
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-  z-index: 100;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-}
-
-.worksheet-text-display.full-screen h3 {
-  font-size: 1.75rem;
-  margin-bottom: 1.5rem;
-  color: #0d6efd;
-}
-
-.worksheet-text-display.full-screen .text-content {
-  font-size: 1.25rem;
-  line-height: 1.8;
-  flex-grow: 1;
 }
 
 .worksheet-text-display h3 {
@@ -267,16 +265,17 @@
     max-width: 100%;
   }
   
-  .worksheet-text-display.full-screen {
+  .video-element {
+    max-width: 100%;
+  }
+  
+  .worksheet-text-display-container.active .worksheet-text-display {
     width: 100%;
     max-width: 100%;
     height: 100vh;
-    max-height: 100vh;
-    border-radius: 0;
-  }
-  
-  .video-element {
-    max-width: 100%;
+    max-height: 70vh;
+    margin-top: 1rem;
+    padding: 1rem;
   }
 }
 

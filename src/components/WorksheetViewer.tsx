@@ -196,7 +196,7 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
     }
   }, [displayedMessages]);
 
-  // Video-audio synchronization
+  // Fix issue 2: Modify the video-audio synchronization to prevent auto-progression
   useEffect(() => {
     if (!videoRef.current || !audioRef.current) return;
     
@@ -225,23 +225,6 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
     const handleAudioEnded = () => {
       console.log('Audio ended');
       setIsAudioPlaying(false);
-      
-      // Automatically go to the next step if available
-      if (activeRegion && activeRegion.description && currentStepIndex < activeRegion.description.length - 1) {
-        const nextStepIndex = currentStepIndex + 1;
-        setCurrentStepIndex(nextStepIndex);
-        
-        // Add the next message to displayed messages array
-        setDisplayedMessages(prevMessages => [
-          ...prevMessages,
-          activeRegion.description[nextStepIndex]
-        ]);
-        
-        // Play audio for the next step with delay
-        setTimeout(() => {
-          playAudioSegment(activeRegion.name, nextStepIndex);
-        }, 500);
-      }
     };
     
     // Event handler for video
@@ -277,7 +260,7 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
       audio.removeEventListener('ended', handleAudioEnded);
       video.removeEventListener('timeupdate', handleVideoTimeUpdate);
     };
-  }, [videoRef.current, audioRef.current, isAudioPlaying, activeRegion, currentStepIndex]);
+  }, [videoRef.current, audioRef.current, isAudioPlaying]);
 
   const handleRetry = () => {
     setRetryCount(prev => prev + 1);
@@ -483,43 +466,6 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
       {/* Audio element for playback */}
       <audio ref={audioRef} className="hidden" />
       
-      {/* Video element for avatar - hidden initially */}
-      <video 
-        ref={videoRef}
-        className={`video-element ${showVideo && isTextMode ? '' : 'hidden'}`}
-        src="/video/default.mp4"
-        muted
-        autoPlay
-        playsInline
-        preload="auto"
-      />
-      
-      {loading && (
-        <div className="worksheet-loading">
-          <div className="animate-pulse flex justify-center items-center h-full">
-            <p className="text-lg text-gray-500">Loading PDF...</p>
-          </div>
-        </div>
-      )}
-      
-      {error && (
-        <div className="worksheet-error">
-          <p className="text-red-500">{error}</p>
-          <p className="text-sm text-gray-500 mt-2">
-            The worksheet you're looking for might not exist. Please check the QR code and try again.
-          </p>
-          <p className="text-xs text-gray-400 mt-1">
-            Looking for: {pdfPath}
-          </p>
-          <button 
-            onClick={handleRetry}
-            className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
-          >
-            Retry Loading PDF
-          </button>
-        </div>
-      )}
-      
       {/* PDF Document and regions - hidden in text mode */}
       <div className={`worksheet-pdf-container ${isTextMode ? 'hidden' : ''} ${isCurrentPageDrmProtected ? 'drm-active' : ''}`}>
         <Document
@@ -600,27 +546,40 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
       
       {/* Text display area - Only shown in text mode */}
       {activeRegion && (
-        <div 
-          className={`worksheet-text-display ${isTextMode ? 'full-screen' : 'hidden'}`}
-          ref={textDisplayRef}
-        >
-          <h3 className="text-lg font-semibold mb-2">{activeRegion.name}</h3>
-          <div className="text-content chat-messages">
-            {displayedMessages.map((message, index) => (
-              <div key={index} className="chat-message">
-                <p>{message}</p>
-              </div>
-            ))}
+        <div className={`worksheet-text-display-container ${isTextMode ? 'active' : 'hidden'}`}>
+          {/* Video element for avatar - moved inside text display container */}
+          <video 
+            ref={videoRef}
+            className={`video-element ${showVideo ? '' : 'hidden'}`}
+            src="/video/default.mp4"
+            muted
+            autoPlay
+            playsInline
+            preload="auto"
+          />
+          
+          <div 
+            className="worksheet-text-display"
+            ref={textDisplayRef}
+          >
+            <h3 className="text-lg font-semibold mb-2">{activeRegion.name}</h3>
+            <div className="text-content chat-messages">
+              {displayedMessages.map((message, index) => (
+                <div key={index} className="chat-message">
+                  <p>{message}</p>
+                </div>
+              ))}
+            </div>
+            {hasNextStep && isTextMode && (
+              <Button 
+                onClick={handleNextStep} 
+                className="next-button mt-3"
+                variant="default"
+              >
+                Next <ChevronRight className="ml-1" />
+              </Button>
+            )}
           </div>
-          {hasNextStep && isTextMode && (
-            <Button 
-              onClick={handleNextStep} 
-              className="next-button mt-3"
-              variant="default"
-            >
-              Next <ChevronRight className="ml-1" />
-            </Button>
-          )}
         </div>
       )}
       
