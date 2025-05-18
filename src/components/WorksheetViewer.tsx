@@ -196,7 +196,7 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
     }
   }, [displayedMessages]);
 
-  // Improved video-audio synchronization for cross-browser compatibility
+  // Fixed video-audio synchronization for better cross-browser compatibility
   useEffect(() => {
     if (!videoRef.current || !audioRef.current) return;
     
@@ -388,35 +388,71 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
     }, 100); // Small delay to ensure canvas is rendered
   };
   
-  // Function to play audio segment with proper video synchronization
+  // Function to play audio segment with proper debugging and error handling
   const playAudioSegment = (regionName: string, stepIndex: number) => {
-    if (!audioRef.current) return;
+    if (!audioRef.current) {
+      console.error("Audio reference is not available");
+      return;
+    }
     
     // Construct the audio file path
     const audioPath = `/audio/${worksheetId}/${regionName}_${stepIndex + 1}.mp3`;
+    console.log(`Attempting to play audio: ${audioPath}`);
     
     // Set the source and load the audio
     audioRef.current.src = audioPath;
     
+    // Log when audio is loaded
+    audioRef.current.onloadeddata = () => {
+      console.log(`Audio loaded successfully: ${audioPath}`);
+    };
+    
     // Handle audio loading errors
-    audioRef.current.onerror = () => {
-      console.error(`Failed to load audio: ${audioPath}`);
+    audioRef.current.onerror = (e) => {
+      console.error(`Failed to load audio: ${audioPath}`, e);
       toast({
         title: "Audio Error",
-        description: "Could not load the audio file",
+        description: `Could not load the audio file: ${audioPath}`,
         variant: "destructive"
       });
       setIsAudioPlaying(false);
     };
     
-    // Play the audio
-    audioRef.current.play().catch(err => {
-      console.error("Error playing audio:", err);
-      setIsAudioPlaying(false);
-    });
+    // Play the audio with better error handling
+    console.log("Attempting to play audio now...");
+    const playPromise = audioRef.current.play();
+    
+    if (playPromise !== undefined) {
+      playPromise
+        .then(() => {
+          console.log("Audio playback started successfully");
+        })
+        .catch(err => {
+          console.error("Error playing audio:", err);
+          
+          // Try again with user interaction if autoplay was blocked
+          toast({
+            title: "Audio playback blocked",
+            description: "Click anywhere to enable audio",
+            variant: "destructive"
+          });
+          
+          // Add a one-time click listener to the document
+          document.addEventListener('click', function playOnUserAction() {
+            if (audioRef.current) {
+              audioRef.current.play()
+                .then(() => console.log("Audio playback started after user interaction"))
+                .catch(e => console.error("Still can't play audio after user interaction:", e));
+            }
+            document.removeEventListener('click', playOnUserAction);
+          }, { once: true });
+          
+          setIsAudioPlaying(false);
+        });
+    }
   };
   
-  // Handle region click
+  // Handle region click with improved audio handling
   const handleRegionClick = (region: RegionData) => {
     console.log(`Region clicked: ${region.name}`);
     
@@ -436,10 +472,10 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
         videoRef.current.play().catch(err => console.error("Error playing video:", err));
       }
       
-      // Play audio for the first step with a slight delay
+      // Play audio for the first step with a slight delay to ensure video is ready
       setTimeout(() => {
         playAudioSegment(region.name, 0);
-      }, 500);
+      }, 800);
     } else {
       setDisplayedMessages([]);
       // Hide video if region has no description
@@ -458,12 +494,13 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
     });
   };
   
-  // Handle Next button click - now appends the next message to displayedMessages
+  // Handle Next button click with improved audio handling
   const handleNextStep = () => {
     if (activeRegion && activeRegion.description && currentStepIndex < activeRegion.description.length - 1) {
       // Stop current audio if playing
       if (audioRef.current) {
         audioRef.current.pause();
+        audioRef.current.currentTime = 0;
       }
       
       const nextStepIndex = currentStepIndex + 1;
@@ -475,10 +512,10 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
         activeRegion.description[nextStepIndex]
       ]);
       
-      // Play audio for the next step with delay to allow video to sync
+      // Play audio for the next step with longer delay to allow video to sync properly
       setTimeout(() => {
         playAudioSegment(activeRegion.name, nextStepIndex);
-      }, 500);
+      }, 800);
     }
   };
   
@@ -529,8 +566,14 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
       ref={pdfContainerRef}
       onDoubleClick={handleDoubleClick}
     >
-      {/* Audio element for playback */}
-      <audio ref={audioRef} className="hidden" />
+      {/* Audio element for playback - fixed with controls for debugging */}
+      <audio 
+        ref={audioRef} 
+        className="hidden"
+        preload="auto" 
+        // Uncomment for debugging
+        // controls 
+      />
       
       {/* PDF Document and regions - hidden in text mode */}
       <div className={`worksheet-pdf-container ${isTextMode ? 'hidden' : ''} ${isCurrentPageDrmProtected ? 'drm-active' : ''}`}>
@@ -621,6 +664,7 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
             muted
             autoPlay
             playsInline
+            loop={!isAudioPlaying}
             preload="auto"
           />
           
