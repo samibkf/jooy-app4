@@ -50,6 +50,10 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
   const [isVideoPlaying, setIsVideoPlaying] = useState<boolean>(false);
   const [videoPlaybackMode, setVideoPlaybackMode] = useState<'intro' | 'main'>('intro');
   
+  // Define all refs first before using them
+  // Reference for PDF container
+  const pdfContainerRef = useRef<HTMLDivElement>(null);
+  
   // Animation frame reference for synchronization
   const animationFrameRef = useRef<number | null>(null);
   
@@ -710,9 +714,6 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
   // Check if we can go to the next step
   const hasNextStep = activeRegion?.description && currentStepIndex < activeRegion.description.length - 1;
 
-  // Reference to PDF container
-  const pdfContainerRef = useRef<HTMLDivElement>(null);
-
   return (
     <div 
       className={`worksheet-container ${isTextMode ? 'text-mode' : ''}`} 
@@ -874,3 +875,4 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
 };
 
 export default WorksheetViewer;
+
