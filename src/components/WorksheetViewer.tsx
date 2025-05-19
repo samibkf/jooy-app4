@@ -25,9 +25,9 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
   // Animation frame reference for media syncing
   const animationFrameRef = useRef<number | null>(null);
   
-  // Constants for video timing
-  const VIDEO_IDLE_START = 1; // Start of idle loop in seconds
-  const VIDEO_IDLE_END = 9; // End of idle loop in seconds
+  // Constants for video timing - updated idle animation range
+  const VIDEO_IDLE_START = 0; // Start of idle loop in seconds
+  const VIDEO_IDLE_END = 9.9; // End of idle loop in seconds
   const VIDEO_TALKING_START = 10; // Start of talking loop in seconds
   const VIDEO_TALKING_END = 20; // End of talking loop in seconds
   
@@ -263,22 +263,8 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
     };
     
     const handleAudioEnded = () => {
-      console.log('Audio ended - checking if there is a next step');
+      console.log('Audio ended - returning to idle animation');
       setIsAudioPlaying(false);
-      
-      // Check if there's a next step to play automatically
-      if (activeRegion?.description && currentStepIndex < activeRegion.description.length - 1) {
-        const nextStepIndex = currentStepIndex + 1;
-        
-        // Update step index and add next message
-        setCurrentStepIndex(nextStepIndex);
-        setDisplayedMessages(prev => [...prev, activeRegion.description[nextStepIndex]]);
-        
-        // Play next audio segment with delay
-        setTimeout(() => {
-          playAudioSegment(activeRegion.name, nextStepIndex);
-        }, 500);
-      }
     };
     
     // Add event listeners
@@ -336,8 +322,9 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
           }
         }
         
-        // Make sure video is playing if it should be
+        // Make sure video is always playing to prevent pausing during audio playback
         if (showVideo && video.paused && video.readyState >= 3) {
+          console.log('Video was paused - restarting it');
           video.play().catch(err => console.error("Error in monitor loop:", err));
         }
       }
