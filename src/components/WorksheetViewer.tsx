@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Document, Page, pdfjs } from "react-pdf";
 import "../styles/Worksheet.css";
@@ -234,6 +233,11 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
         console.log("Preloading video after user interaction");
         videoRef.current.load();
       }
+      
+      // Attempt to resume video playback if it was paused by autoplay policy
+      if (showVideo && !isVideoPlaying && videoRef.current) {
+        ensureVideoIsPlaying();
+      }
     };
     
     // Add event listeners for user interaction
@@ -247,7 +251,7 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
       document.removeEventListener('keydown', handleUserInteraction);
       document.removeEventListener('touchstart', handleUserInteraction);
     };
-  }, []);
+  }, [showVideo, isVideoPlaying]);
   
   // Setup media event listeners and synchronization mechanism
   useEffect(() => {
@@ -319,6 +323,12 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
         cancelAnimationFrame(animationFrameRef.current);
         animationFrameRef.current = null;
       }
+      
+      // Switch back to intro loop
+      if (videoRef.current && isVideoPlaying) {
+        videoRef.current.currentTime = 0;
+        ensureVideoIsPlaying();
+      }
     };
     
     const handleAudioError = (e: Event) => {
@@ -375,7 +385,7 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
   
   // Helper function to ensure video stays in correct loop based on mode
   const maintainVideoLoop = useCallback(() => {
-    if (!videoRef.current) return;
+    if (!videoRef.current || !isMounted.current) return;
     
     const video = videoRef.current;
     
@@ -400,8 +410,10 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
   
   // Start continuous monitoring of video playback
   const startVideoPlaybackMonitoring = useCallback(() => {
+    // Cancel any existing animation frame
     if (animationFrameRef.current) {
       cancelAnimationFrame(animationFrameRef.current);
+      animationFrameRef.current = null;
     }
     
     const monitorVideoPlayback = () => {
@@ -413,13 +425,20 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
         // Maintain proper loop based on mode
         maintainVideoLoop();
         
-        // If audio is playing, ensure video is also playing
-        if (isAudioPlaying && !videoRef.current.paused) {
-          // Video is already playing, just ensure it's in correct loop
-        } else if (isAudioPlaying && videoRef.current.paused) {
-          // Video paused but should be playing during audio playback
-          console.log("Video paused during audio playback - attempting to resume");
-          ensureVideoIsPlaying();
+        // If audio is playing, ensure video is playing correctly in the main section
+        if (isAudioPlaying) {
+          if (videoRef.current.paused) {
+            // Video paused but should be playing during audio playback
+            console.log("Video paused during audio playback - attempting to resume");
+            ensureVideoIsPlaying();
+          } else if (videoPlaybackMode === 'main' && (videoRef.current.currentTime < 10 || videoRef.current.currentTime >= 20)) {
+            // Video is playing but in wrong section - correct it
+            console.log("Video playing in wrong section - correcting");
+            videoRef.current.currentTime = 10; // Reset to beginning of main section
+          }
+        } else if (videoPlaybackMode === 'intro' && videoRef.current.currentTime >= 10) {
+          // If no audio is playing and video is past intro section, reset it
+          videoRef.current.currentTime = 0;
         }
       }
       
@@ -429,7 +448,9 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
     
     // Start the monitoring loop
     animationFrameRef.current = requestAnimationFrame(monitorVideoPlayback);
-  }, [isAudioPlaying, maintainVideoLoop]);
+    
+    console.log("Video playback monitoring started");
+  }, [isAudioPlaying, maintainVideoLoop, videoPlaybackMode]);
   
   // Helper function to ensure video is playing
   const ensureVideoIsPlaying = useCallback(() => {
@@ -439,8 +460,10 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
     
     // Reset video to correct position based on mode
     if (videoPlaybackMode === 'intro' && video.currentTime >= 10) {
+      console.log("Resetting video to intro section start");
       video.currentTime = 0;
     } else if (videoPlaybackMode === 'main' && (video.currentTime < 10 || video.currentTime >= 20)) {
+      console.log("Resetting video to main section start");
       video.currentTime = 10;
     }
     
@@ -453,15 +476,13 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
         // If we can't play due to autoplay policy, wait for user interaction
         if (err.name === 'NotAllowedError') {
           console.log("Autoplay blocked - waiting for user interaction");
-          
-          // We'll try again when user interacts with the page
         }
       });
     }
   }, [videoPlaybackMode]);
   
   // Reset all media playback
-  const resetMediaPlayback = () => {
+  const resetMediaPlayback = useCallback(() => {
     // Stop any playing audio
     if (audioRef.current) {
       audioRef.current.pause();
@@ -485,10 +506,10 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
     setIsAudioPlaying(false);
     setIsVideoPlaying(false);
     setVideoPlaybackMode('intro');
-  };
+  }, []);
 
   // Function to play audio segment with proper video synchronization
-  const playAudioSegment = (regionName: string, stepIndex: number) => {
+  const playAudioSegment = useCallback((regionName: string, stepIndex: number) => {
     if (!audioRef.current) return;
     
     // Construct the audio file path
@@ -525,7 +546,7 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
     
     // Play the audio after a small delay to allow video to start
     setTimeout(() => {
-      if (!audioRef.current) return;
+      if (!audioRef.current || !isMounted.current) return;
       
       audioRef.current.play().catch(err => {
         console.error("Error playing audio:", err);
@@ -541,8 +562,9 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
         }
       });
     }, 100);
-  };
+  }, [worksheetId, showVideo, ensureVideoIsPlaying]);
   
+  // Retry loading PDF if it fails
   const handleRetry = () => {
     setRetryCount(prev => prev + 1);
     setLoading(true);
@@ -553,6 +575,7 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
     });
   };
 
+  // PDF document load success handler
   const onDocumentLoadSuccess = ({ numPages }: { numPages: number }) => {
     console.log("PDF loaded successfully with", numPages, "pages");
     setNumPages(numPages);
@@ -563,6 +586,7 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
     });
   };
 
+  // PDF document load error handler
   const onDocumentLoadError = (err: Error) => {
     console.error("Error loading PDF:", err);
     setError("PDF not found or unable to load");
@@ -635,6 +659,7 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
       setDisplayedMessages([]);
       // Hide video if region has no description
       setShowVideo(false);
+      resetMediaPlayback();
     }
     
     // Set active region
@@ -649,7 +674,7 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
     });
   };
   
-  // Handle Next button click - now appends the next message to displayedMessages
+  // Handle Next button click
   const handleNextStep = () => {
     if (activeRegion && activeRegion.description && currentStepIndex < activeRegion.description.length - 1) {
       // Set user interaction flag
@@ -875,4 +900,3 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
 };
 
 export default WorksheetViewer;
-

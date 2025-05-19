@@ -24,9 +24,9 @@ const WorksheetPage: React.FC = () => {
     };
     
     // Add event listeners for user interaction
-    document.addEventListener('click', enableMediaPlayback);
-    document.addEventListener('touchstart', enableMediaPlayback);
-    document.addEventListener('keypress', enableMediaPlayback);
+    document.addEventListener('click', enableMediaPlayback, { once: true });
+    document.addEventListener('touchstart', enableMediaPlayback, { once: true });
+    document.addEventListener('keypress', enableMediaPlayback, { once: true });
     
     // Clean up
     return () => {
