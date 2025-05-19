@@ -1,5 +1,5 @@
 
-import React, { useEffect } from "react";
+import React from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import WorksheetViewer from "@/components/WorksheetViewer";
 import { Button } from "@/components/ui/button";
@@ -7,34 +7,6 @@ import { Button } from "@/components/ui/button";
 const WorksheetPage: React.FC = () => {
   const { id, n } = useParams<{ id: string; n: string }>();
   const navigate = useNavigate();
-  
-  // Enable initial user interaction to help with autoplay policies
-  useEffect(() => {
-    const enableMediaPlayback = () => {
-      // Create and play a silent audio to enable media playback
-      const silentAudio = new Audio();
-      silentAudio.play().catch(e => {
-        console.log("Silent audio auto-play prevented. User interaction still needed.");
-      });
-      
-      // Remove event listeners after first interaction
-      document.removeEventListener('click', enableMediaPlayback);
-      document.removeEventListener('touchstart', enableMediaPlayback);
-      document.removeEventListener('keypress', enableMediaPlayback);
-    };
-    
-    // Add event listeners for user interaction
-    document.addEventListener('click', enableMediaPlayback, { once: true });
-    document.addEventListener('touchstart', enableMediaPlayback, { once: true });
-    document.addEventListener('keypress', enableMediaPlayback, { once: true });
-    
-    // Clean up
-    return () => {
-      document.removeEventListener('click', enableMediaPlayback);
-      document.removeEventListener('touchstart', enableMediaPlayback);
-      document.removeEventListener('keypress', enableMediaPlayback);
-    };
-  }, []);
   
   const goBack = () => {
     navigate("/");
