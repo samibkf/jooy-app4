@@ -196,7 +196,7 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
     }
   }, [displayedMessages]);
 
-  // Fix issue 2: Modify the video-audio synchronization to prevent auto-progression
+  // Fix issue 1: Refactored video-audio synchronization
   useEffect(() => {
     if (!videoRef.current || !audioRef.current) return;
     
@@ -205,12 +205,16 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
     
     // Event handlers for audio
     const handleAudioPlaying = () => {
-      console.log('Audio started playing - activating main animation loop');
+      console.log('Audio started playing - synchronizing with main animation loop');
       setIsAudioPlaying(true);
       
-      // Start the main animation loop (seconds 10-20)
-      if (video.paused) {
+      // Ensure the video is at the main animation loop (seconds 10-20)
+      if (video.currentTime < 10 || video.currentTime >= 20) {
         video.currentTime = 10;
+      }
+      
+      // Ensure video is playing
+      if (video.paused) {
         video.play().catch(err => console.error("Error playing video:", err));
       }
     };
@@ -219,23 +223,30 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
       console.log('Audio paused - returning to intro/idle loop');
       setIsAudioPlaying(false);
       
-      // Video will transition back to intro loop via timeupdate handler
+      // When audio pauses, we don't pause the video - we let it continue
+      // but it will transition back to intro loop via timeupdate handler
     };
     
     const handleAudioEnded = () => {
       console.log('Audio ended');
       setIsAudioPlaying(false);
+      // Don't automatically progress to next step - user must click Next button
     };
     
     // Event handler for video
     const handleVideoTimeUpdate = () => {
+      if (video.paused) {
+        // If video somehow paused, restart it
+        video.play().catch(err => console.error("Error playing video:", err));
+      }
+      
       // If the video is in the main animation loop (10-20 seconds)
       if (video.currentTime >= 20) {
         // Loop back to second 10 (start of main animation)
         video.currentTime = 10;
       }
       
-      // If the video is in the intro/idle loop (0-10 seconds) and audio is not playing
+      // If the video is in the intro/idle loop (0-10 seconds) and audio is playing
       if (video.currentTime >= 10 && !isAudioPlaying) {
         // Loop back to second 0 (start of intro/idle animation)
         video.currentTime = 0;
