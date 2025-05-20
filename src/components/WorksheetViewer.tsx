@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Document, Page, pdfjs } from "react-pdf";
 import "../styles/Worksheet.css";
@@ -127,6 +128,9 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
             (audioRef.current.readyState >= 3 || // HAVE_FUTURE_DATA or HAVE_ENOUGH_DATA
              document.visibilityState === 'hidden')) { // Force play if tab not visible
           audioRef.current.play()
+            .then(() => {
+              console.log("Audio started playing successfully");
+            })
             .catch(err => {
               console.error("Error playing audio:", err);
               setIsAudioPlaying(false);
@@ -293,11 +297,14 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
       if (!isAudioPlaying && videoRef.current.paused) {
         console.log("Starting video in idle mode");
         videoRef.current.currentTime = 0;  // Start at beginning of idle loop
-        videoRef.current.play().catch(err => console.error("Error starting idle video:", err));
+        videoRef.current.play()
+          .then(() => console.log("Idle video started successfully"))
+          .catch(err => console.error("Error starting idle video:", err));
       }
     } else {
       // If video shouldn't be shown, pause it
       videoRef.current.pause();
+      console.log("Video hidden, pausing playback");
     }
   }, [showVideo, isAudioPlaying]);
 
@@ -336,9 +343,6 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
       const idleLoopEnd = 9.9;  // End of idle animation loop (0-9.9s)
       const talkingLoopStart = 10; // Start of talking animation (10s+)
       
-      // STATE LOGGING (uncomment for debugging)
-      // console.log(`Video time: ${video.currentTime.toFixed(1)}, Audio playing: ${!audio.paused}, isAudioPlaying: ${isAudioPlaying}`);
-      
       // Determine proper loop state from audio state
       if (isAudioPlaying && !audio.paused) {
         // Audio IS playing - video should be in TALKING loop
@@ -347,7 +351,9 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
         if (video.currentTime < idleLoopEnd) {
           console.error("STATE MISMATCH! Video in idle when audio playing. Correcting...");
           video.currentTime = talkingLoopStart; // Force to talking loop
-          video.play().catch(err => console.error("Error fixing video mismatch:", err));
+          video.play()
+            .then(() => console.log("Corrected video state mismatch"))
+            .catch(err => console.error("Error fixing video mismatch:", err));
         }
         
         // If near end of video, loop back to start of talking segment
@@ -374,7 +380,9 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
         // Ensure video is playing if it should be in idle loop but is paused
         if (video.paused && showVideo) {
           console.log("Restarting paused idle video");
-          video.play().catch(err => console.error("Error restarting idle video:", err));
+          video.play()
+            .then(() => console.log("Successfully restarted idle video"))
+            .catch(err => console.error("Error restarting idle video:", err));
         }
       }
     };
@@ -463,6 +471,7 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
     // Stop any currently playing audio
     if (audioRef.current) {
       audioRef.current.pause();
+      console.log("Stopped previous audio playback");
     }
     
     // Set active region and reset step index
@@ -487,6 +496,7 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
       // Stop current audio if playing
       if (audioRef.current) {
         audioRef.current.pause();
+        console.log("Stopped audio for current step");
       }
       
       // Increment step index
