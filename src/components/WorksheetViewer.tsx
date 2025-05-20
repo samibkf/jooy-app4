@@ -58,6 +58,9 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
   
   // Current audio source tracking for debugging
   const currentAudioSource = useRef<string>("");
+  
+  // NEW: Add transition protection mechanism
+  const isVideoTransitioningRef = useRef<boolean>(false);
 
   // 1. Consolidated Step Initiation Logic using useCallback
   const playStep = useCallback((regionName: string, stepIndex: number) => {
@@ -92,6 +95,7 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
       if (videoRef.current) {
         videoRef.current.currentTime = 0;
         videoRef.current.play()
+          .then(() => console.log("Video prepared for idle loop before audio starts"))
           .catch(err => console.error("Error playing intro video:", err));
       }
     } else {
@@ -106,6 +110,7 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
       // Construct the audio file path
       const audioPath = `/audio/${worksheetId}/${regionName}_${stepIndex + 1}.mp3`;
       currentAudioSource.current = audioPath; // Track current audio for debugging
+      console.log(`Setting up audio: ${audioPath}`);
       
       // Set up and play audio
       audioRef.current.src = audioPath;
@@ -308,24 +313,46 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
     }
   }, [showVideo, isAudioPlaying]);
 
-  // 3. Audio and Video Event Handlers
+  // 3. Audio and Video Event Handlers - MODIFIED for more robust transitions
   useEffect(() => {
     if (!videoRef.current || !audioRef.current) return;
     
     const video = videoRef.current;
     const audio = audioRef.current;
     
-    // Event handlers for audio
+    // MODIFIED: Enhanced audio playing handler with transition protection
     const handleAudioPlaying = () => {
       console.log('⏯️ Audio started playing:', currentAudioSource.current);
       setIsAudioPlaying(true);
       
+      // Set transition flag to prevent handleVideoTimeUpdate interference
+      isVideoTransitioningRef.current = true;
+      
       // ASSERTIVELY transition to talking animation loop
       if (video) {
+        // Pause first to break any existing playback cycle
+        video.pause();
         video.currentTime = 10; // Start of talking animation
+        console.log("Transitioning video to talking loop (current time set to 10s)");
+        
         video.play()
           .then(() => console.log("Video successfully transitioned to talking loop"))
           .catch(err => console.error("Error transitioning video to talking:", err));
+          
+        // After a brief delay, clear the transition flag
+        setTimeout(() => {
+          isVideoTransitioningRef.current = false;
+          // Verify the transition was successful
+          if (video && video.currentTime < 9.9 && !audio.paused) {
+            console.error("CRITICAL: Video failed to stay in talking loop after transition period");
+            // One more aggressive attempt
+            video.pause();
+            video.currentTime = 10;
+            video.play()
+              .then(() => console.log("Emergency correction successful"))
+              .catch(err => console.error("Emergency correction failed:", err));
+          }
+        }, 300); // 300ms should be enough time for the transition to take effect
       }
     };
     
@@ -335,13 +362,22 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
       // Video will transition back to idle via the handleVideoTimeUpdate
     };
     
-    // Handle video time updates for managing the loop regions
+    // MODIFIED: Enhanced video time update handler with transition protection
     const handleVideoTimeUpdate = () => {
       if (!video || !audio) return;
+      
+      // Skip processing if video is in planned transition state
+      if (isVideoTransitioningRef.current) {
+        // console.log("VideoTimeUpdate: Video is transitioning, skipping update cycle");
+        return;
+      }
       
       // Define loop regions
       const idleLoopEnd = 9.9;  // End of idle animation loop (0-9.9s)
       const talkingLoopStart = 10; // Start of talking animation (10s+)
+      
+      // Log current state for debugging (uncomment if needed)
+      // console.log(`Video time: ${video.currentTime.toFixed(1)}, Audio paused: ${audio.paused}, isAudioPlaying: ${isAudioPlaying}`);
       
       // Determine proper loop state from audio state
       if (isAudioPlaying && !audio.paused) {
@@ -350,10 +386,16 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
         // Check if video is incorrectly in IDLE segment when audio is playing
         if (video.currentTime < idleLoopEnd) {
           console.error("STATE MISMATCH! Video in idle when audio playing. Correcting...");
-          video.currentTime = talkingLoopStart; // Force to talking loop
-          video.play()
-            .then(() => console.log("Corrected video state mismatch"))
-            .catch(err => console.error("Error fixing video mismatch:", err));
+          
+          // Only attempt correction if not already transitioning
+          if (!isVideoTransitioningRef.current) {
+            // More assertive correction: pause, set time, then play
+            video.pause();
+            video.currentTime = talkingLoopStart; // Force to talking loop
+            video.play()
+              .then(() => console.log("Corrected video state mismatch"))
+              .catch(err => console.error("Error fixing video mismatch:", err));
+          }
         }
         
         // If near end of video, loop back to start of talking segment
