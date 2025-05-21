@@ -60,11 +60,12 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
   // Ref for text display area to enable auto-scrolling
   const textDisplayRef = useRef<HTMLDivElement>(null);
 
-  // Refs for playback direction
-  const idlePlaybackDirectionRef = useRef<'forward' | 'backward'>('forward');
-  const talkingPlaybackDirectionRef = useRef<'forward' | 'backward'>('forward');
+  // Refs for playback direction and timing
+  const playbackDirectionRef = useRef<'forward' | 'reverse'>('forward');
+  const lastTimeUpdateRef = useRef<number>(0);
+  const reverseSpeedRef = useRef<number>(1); // Playback speed multiplier
 
-  // Ref for animation frame
+  // Animation frame ref for cleanup
   const animationFrameRef = useRef<number>();
   
   useEffect(() => {
@@ -112,9 +113,9 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
       cancelAnimationFrame(animationFrameRef.current);
     }
 
-    // Reset playback directions
-    idlePlaybackDirectionRef.current = 'forward';
-    talkingPlaybackDirectionRef.current = 'forward';
+    // Reset playback direction
+    playbackDirectionRef.current = 'forward';
+    lastTimeUpdateRef.current = 0;
   }, [worksheetId, pageIndex, pdfPath]);
   
   // Fetch metadata JSON
@@ -212,63 +213,64 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
     }
   }, [displayedMessages]);
 
-  // Implement ping-pong video looping with reverse playback simulation
+  // Implement ping-pong video looping with proper reverse playback
   useEffect(() => {
     if (!videoRef.current || !audioRef.current) return;
     
     const video = videoRef.current;
     const audio = audioRef.current;
 
-    // Constants for loop boundaries
+    // Constants for segments
     const IDLE_START = 0;
     const IDLE_END = 9.9;
     const TALKING_START = 10;
     const TALKING_END = video.duration ? video.duration - 0.1 : 19.9;
-    const REVERSE_STEP = 1/30; // 30fps simulation
 
-    // Function to simulate reverse playback
-    const simulateReversePlayback = (start: number, end: number, isIdle: boolean) => {
+    // Function to handle reverse playback animation
+    const animateReverse = (currentSegment: 'idle' | 'talking') => {
       if (!video) return;
 
-      const currentTime = video.currentTime;
-      const newTime = currentTime - REVERSE_STEP;
+      const now = performance.now();
+      const deltaTime = now - lastTimeUpdateRef.current;
+      lastTimeUpdateRef.current = now;
 
-      if (newTime <= start) {
+      // Calculate new time based on reverse speed
+      const timeStep = (deltaTime / 1000) * reverseSpeedRef.current;
+      const newTime = video.currentTime - timeStep;
+
+      // Check segment boundaries
+      const segmentStart = currentSegment === 'idle' ? IDLE_START : TALKING_START;
+      const segmentEnd = currentSegment === 'idle' ? IDLE_END : TALKING_END;
+
+      if (newTime <= segmentStart) {
         // Reached start of segment, switch to forward
-        if (isIdle) {
-          idlePlaybackDirectionRef.current = 'forward';
-          video.currentTime = IDLE_START;
-        } else {
-          talkingPlaybackDirectionRef.current = 'forward';
-          video.currentTime = TALKING_START;
-        }
-        video.play().catch(e => console.error("Error playing video after reverse:", e));
+        playbackDirectionRef.current = 'forward';
+        video.currentTime = segmentStart;
+        video.play().catch(console.error);
       } else {
         // Continue reverse playback
         video.currentTime = newTime;
         animationFrameRef.current = requestAnimationFrame(() => 
-          simulateReversePlayback(start, end, isIdle)
+          animateReverse(currentSegment)
         );
       }
     };
     
     // Event handlers for audio
     const handleAudioPlaying = () => {
-      console.log('Audio started playing - activating main animation loop');
+      console.log('Audio started playing');
       setIsAudioPlaying(true);
-      talkingPlaybackDirectionRef.current = 'forward';
+      playbackDirectionRef.current = 'forward';
       
-      // Start the main animation loop
       if (video.paused) {
         video.currentTime = TALKING_START;
-        video.play().catch(err => console.error("Error playing video:", err));
+        video.play().catch(console.error);
       }
     };
     
     const handleAudioPause = () => {
-      console.log('Audio paused - returning to intro/idle loop');
+      console.log('Audio paused');
       setIsAudioPlaying(false);
-      idlePlaybackDirectionRef.current = 'forward';
       
       // Cancel any ongoing reverse animation
       if (animationFrameRef.current) {
@@ -276,14 +278,14 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
       }
       
       // Reset to idle loop
+      playbackDirectionRef.current = 'forward';
       video.currentTime = IDLE_START;
-      video.play().catch(err => console.error("Error resetting to idle:", err));
+      video.play().catch(console.error);
     };
     
     const handleAudioEnded = () => {
       console.log('Audio ended');
       setIsAudioPlaying(false);
-      idlePlaybackDirectionRef.current = 'forward';
       
       // Cancel any ongoing reverse animation
       if (animationFrameRef.current) {
@@ -291,41 +293,42 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
       }
       
       // Reset to idle loop
+      playbackDirectionRef.current = 'forward';
       video.currentTime = IDLE_START;
-      video.play().catch(err => console.error("Error resetting to idle after end:", err));
+      video.play().catch(console.error);
     };
     
-    // Event handler for video
+    // Handle video time updates
     const handleVideoTimeUpdate = () => {
-      const videoTime = video.currentTime;
       const isActualAudioPlaying = !audio.paused;
 
       if (isAudioPlaying && isActualAudioPlaying) {
         // TALKING LOOP
-        if (videoTime < TALKING_START - 0.1) {
-          // Mismatch, force into talking segment
-          console.warn(`VTU MISMATCH (Talking): Audio playing, video at ${videoTime}s. Forcing to ${TALKING_START}s.`);
+        if (video.currentTime < TALKING_START - 0.1) {
+          // Force into talking segment if misaligned
           video.currentTime = TALKING_START;
-          talkingPlaybackDirectionRef.current = 'forward';
-          video.play().catch(e => console.error("VTU: Play error on mismatch fix (talking)", e));
-        } else if (talkingPlaybackDirectionRef.current === 'forward' && videoTime >= TALKING_END) {
-          // Switch to reverse playback
-          talkingPlaybackDirectionRef.current = 'backward';
+          playbackDirectionRef.current = 'forward';
+          video.play().catch(console.error);
+        } else if (playbackDirectionRef.current === 'forward' && video.currentTime >= TALKING_END) {
+          // Switch to reverse at end of segment
+          playbackDirectionRef.current = 'reverse';
+          lastTimeUpdateRef.current = performance.now();
           video.pause();
-          simulateReversePlayback(TALKING_START, TALKING_END, false);
+          animateReverse('talking');
         }
       } else {
         // IDLE LOOP
-        if (videoTime >= TALKING_START) {
-          // Reset to idle if we're in talking section
+        if (video.currentTime >= TALKING_START) {
+          // Reset to idle if in talking section
           video.currentTime = IDLE_START;
-          idlePlaybackDirectionRef.current = 'forward';
-          video.play().catch(e => console.error("VTU: Play error on reset to idle", e));
-        } else if (idlePlaybackDirectionRef.current === 'forward' && videoTime >= IDLE_END) {
-          // Switch to reverse playback
-          idlePlaybackDirectionRef.current = 'backward';
+          playbackDirectionRef.current = 'forward';
+          video.play().catch(console.error);
+        } else if (playbackDirectionRef.current === 'forward' && video.currentTime >= IDLE_END) {
+          // Switch to reverse at end of idle segment
+          playbackDirectionRef.current = 'reverse';
+          lastTimeUpdateRef.current = performance.now();
           video.pause();
-          simulateReversePlayback(IDLE_START, IDLE_END, true);
+          animateReverse('idle');
         }
       }
     };
@@ -336,14 +339,13 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
     audio.addEventListener('ended', handleAudioEnded);
     video.addEventListener('timeupdate', handleVideoTimeUpdate);
     
+    // Cleanup
     return () => {
-      // Remove event listeners on cleanup
       audio.removeEventListener('playing', handleAudioPlaying);
       audio.removeEventListener('pause', handleAudioPause);
       audio.removeEventListener('ended', handleAudioEnded);
       video.removeEventListener('timeupdate', handleVideoTimeUpdate);
       
-      // Cancel any ongoing animation frame
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
       }
@@ -455,7 +457,7 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
       // Ensure video is ready and at intro loop
       if (videoRef.current) {
         videoRef.current.currentTime = 0;
-        idlePlaybackDirectionRef.current = 'forward';
+        playbackDirectionRef.current = 'forward';
         videoRef.current.play().catch(err => console.error("Error playing video:", err));
       }
       
@@ -505,7 +507,7 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
     }
   };
   
-  // Toggle text mode on double click - Modified to stop audio/video when switching to PDF view
+  // Toggle text mode on double click
   const handleDoubleClick = () => {
     // Only toggle if there's an active region
     if (activeRegion) {
@@ -517,25 +519,23 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
         if (audioRef.current) {
           audioRef.current.pause();
           audioRef.current.currentTime = 0;
-          console.log("Audio stopped due to switching to PDF view");
         }
         
         if (videoRef.current) {
           videoRef.current.pause();
-          console.log("Video stopped due to switching to PDF view");
         }
-        
-        setIsAudioPlaying(false);
         
         // Cancel any ongoing animation frame
         if (animationFrameRef.current) {
           cancelAnimationFrame(animationFrameRef.current);
         }
+        
+        setIsAudioPlaying(false);
       } else {
         // If switching to text mode, ensure video is in intro state
         if (videoRef.current && showVideo) {
           videoRef.current.currentTime = 0;
-          idlePlaybackDirectionRef.current = 'forward';
+          playbackDirectionRef.current = 'forward';
           videoRef.current.play().catch(err => console.error("Error playing video:", err));
         }
         
