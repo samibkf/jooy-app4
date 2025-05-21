@@ -235,8 +235,8 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
         video.currentTime = 10;
       }
       
-      // If the video is in the intro/idle loop (0-10 seconds) and audio is not playing
-      if (video.currentTime >= 10 && !isAudioPlaying) {
+      // If the video is in the intro/idle loop (0-9.9 seconds) and audio is not playing
+      if (video.currentTime >= 9.9 && !isAudioPlaying) {
         // Loop back to second 0 (start of intro/idle animation)
         video.currentTime = 0;
       }
