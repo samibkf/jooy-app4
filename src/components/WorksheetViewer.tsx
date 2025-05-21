@@ -43,7 +43,7 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
   // State for DRM protection
   const [isCurrentPageDrmProtected, setIsCurrentPageDrmProtected] = useState<boolean>(false);
   
-  // New state for video display
+  // State for video display
   const [showVideo, setShowVideo] = useState<boolean>(false);
   const [isAudioPlaying, setIsAudioPlaying] = useState<boolean>(false);
   
@@ -219,31 +219,71 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
       console.log('Audio paused - returning to intro/idle loop');
       setIsAudioPlaying(false);
       
-      // Video will transition back to intro loop via timeupdate handler
+      // Reset to idle loop
+      if (video.currentTime >= 10) {
+        video.currentTime = 0;
+      }
     };
     
     const handleAudioEnded = () => {
       console.log('Audio ended');
       setIsAudioPlaying(false);
+      
+      // Reset to idle loop
+      if (video.currentTime >= 10) {
+        video.currentTime = 0;
+      }
     };
     
     // Event handler for video
     const handleVideoTimeUpdate = () => {
-      // If the video is in the main animation loop (10-20 seconds)
-      if (video.currentTime >= 20) {
-        // Loop back to second 10 (start of main animation)
-        video.currentTime = 10;
-      }
+      const videoTime = video.currentTime;
+      const videoDuration = video.duration;
+      const isActualAudioPlaying = !audio.paused;
       
-      // If the video is in the intro/idle loop (0-9.9 seconds) and audio is not playing
-      if (video.currentTime >= 9.9 && !isAudioPlaying) {
-        // Loop back to second 0 (start of intro/idle animation)
-        video.currentTime = 0;
-      }
+      // Define loop boundaries
+      const idleStart = 0;
+      const idleEnd = 9.9;
+      const talkingStart = 10;
+      const talkingEnd = videoDuration - 0.1;
       
-      // If audio is playing but video is in intro loop, jump to main loop
-      if (isAudioPlaying && video.currentTime < 10) {
-        video.currentTime = 10;
+      if (isAudioPlaying && isActualAudioPlaying) {
+        // TALKING LOOP (Ping-Pong by jumping back)
+        if (videoTime < talkingStart - 0.1) {
+          // Mismatch, force into talking segment
+          console.warn(`VTU MISMATCH (Talking): Audio playing, video at ${videoTime}s. Forcing to ${talkingStart}s.`);
+          video.pause();
+          video.currentTime = talkingStart;
+          video.play().catch(e => console.error("VTU: Play error on mismatch fix (talking)", e));
+        } else if (videoTime >= talkingEnd) {
+          // Reached end of talking loop, jump back to start
+          video.currentTime = talkingStart;
+          if (video.paused) {
+            video.play().catch(e => console.error("VTU: Play error on loop (talking)", e));
+          }
+        } else if (video.paused) {
+          // Should be playing
+          video.play().catch(e => console.error("VTU: Play error, was paused (talking)", e));
+        }
+      } else {
+        // IDLE LOOP (Ping-Pong by jumping back)
+        if (videoTime >= idleEnd && videoTime < talkingStart) {
+          // Reached end of idle loop, jump back to start
+          video.currentTime = idleStart;
+          if (video.paused) {
+            video.play().catch(e => console.error("VTU: Play error on loop (idle)", e));
+          }
+        } else if (videoTime >= talkingStart) {
+          // Audio stopped, video was in talking. Reset to idle.
+          console.log(`VTU: Audio stopped, video at ${videoTime}s. Resetting to IDLE (${idleStart}s).`);
+          video.currentTime = idleStart;
+          if (video.paused) {
+            video.play().catch(e => console.error("VTU: Play error on reset to idle", e));
+          }
+        } else if (video.paused) {
+          // Should be playing (idle)
+          video.play().catch(e => console.error("VTU: Play error, was paused (idle)", e));
+        }
       }
     };
     
