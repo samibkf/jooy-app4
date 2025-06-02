@@ -4,7 +4,7 @@ import "../styles/Worksheet.css";
 import { toast } from "@/components/ui/use-toast";
 import { Button } from "@/components/ui/button";
 import { RegionData, WorksheetMetadata } from "@/types/worksheet";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Sparkles } from "lucide-react";
 
 // Set up the worker for react-pdf
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.js`;
@@ -465,14 +465,13 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
         </div>
       )}
 
-      {/* Next button - Fixed position when in text mode */}
       {hasNextStep && isTextMode && (
         <Button 
           onClick={handleNextStep} 
-          className="fixed bottom-4 right-4 z-70 rounded-full bg-gradient-to-r from-blue-500 to-blue-700 hover:from-blue-600 hover:to-blue-800 text-white shadow-lg"
-          size="icon"
+          className="next-button"
+          variant="default"
         >
-          <ChevronRight className="h-5 w-5" />
+          Next <Sparkles className="h-5 w-5" />
         </Button>
       )}
       
