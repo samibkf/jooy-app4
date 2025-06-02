@@ -39,8 +39,8 @@
 .worksheet-clear-region {
   box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
   border-radius: 4px;
-  pointer-events: none; /* This ensures clicks go through to the region below */
-  overflow: hidden; /* Ensure content is clipped to the region */
+  pointer-events: none;
+  overflow: hidden;
 }
 
 .drm-notice {
@@ -55,8 +55,6 @@
   z-index: 20;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
-
-/* End of DRM styling */
 
 .worksheet-loading,
 .worksheet-error {
@@ -116,6 +114,7 @@
   transition: all 0.3s ease;
   display: block;
   z-index: 60;
+  position: relative;
 }
 
 .video-element.hidden {
@@ -128,7 +127,7 @@
   }
 }
 
-/* Text Display Container - New parent container for video and text */
+/* Text Display Container */
 .worksheet-text-display-container {
   display: flex;
   flex-direction: column;
@@ -138,6 +137,7 @@
   margin: 0 auto;
   transition: all 0.3s ease;
   position: relative;
+  z-index: 65;
 }
 
 .worksheet-text-display-container.hidden {
@@ -161,11 +161,10 @@
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
   transition: all 0.3s ease;
   position: relative;
-  overflow-y: auto; /* Enable vertical scrolling */
-  max-height: 400px; /* Limit height when not in full screen */
+  overflow-y: auto;
+  max-height: 400px;
 }
 
-/* Full screen text display styles */
 .worksheet-text-display-container.active .worksheet-text-display {
   width: 90%;
   max-width: 90%;
