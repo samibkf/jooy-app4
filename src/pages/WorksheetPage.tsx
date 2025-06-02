@@ -40,13 +40,8 @@ const WorksheetPage: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4">
-      <div className="bg-white rounded-lg shadow-md p-4">
-        <h1 className="text-xl font-bold mb-4 text-blue-600">
-          Worksheet: {id} - Page {pageIndex}
-        </h1>
-        <WorksheetViewer worksheetId={id} pageIndex={pageIndex} />
-      </div>
+    <div className="min-h-screen bg-gray-50">
+      <WorksheetViewer worksheetId={id} pageIndex={pageIndex} />
     </div>
   );
 };
