@@ -351,7 +351,6 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
     >
       <audio ref={audioRef} className="hidden" />
       
-      {/* Back button in text mode */}
       {isTextMode && (
         <Button
           onClick={handleDoubleClick}

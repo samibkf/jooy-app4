@@ -306,7 +306,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 50%;
+  border-radius: 50% !important;
   background: linear-gradient(135deg, #3b82f6, #1d4ed8);
   color: white;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
