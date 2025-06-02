@@ -3,7 +3,7 @@ import { Document, Page, pdfjs } from "react-pdf";
 import "../styles/Worksheet.css";
 import { Button } from "@/components/ui/button";
 import { RegionData, WorksheetMetadata } from "@/types/worksheet";
-import { Sparkles } from "lucide-react";
+import { ChevronLeft, Sparkles } from "lucide-react";
 
 // Set up the worker for react-pdf
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.js`;
@@ -42,59 +42,43 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
   // State for DRM protection
   const [isCurrentPageDrmProtected, setIsCurrentPageDrmProtected] = useState<boolean>(false);
   
-  // New state for video display
+  // State for video display
   const [showVideo, setShowVideo] = useState<boolean>(false);
   const [isAudioPlaying, setIsAudioPlaying] = useState<boolean>(false);
   
-  // Reference to the PDF container and PDF itself for getting rendered dimensions
+  // References
   const pdfContainerRef = useRef<HTMLDivElement>(null);
   const pdfRef = useRef<HTMLCanvasElement>(null);
-  
-  // Audio element reference
   const audioRef = useRef<HTMLAudioElement>(null);
-  
-  // Video element reference
   const videoRef = useRef<HTMLVideoElement>(null);
-  
-  // Ref for text display area to enable auto-scrolling
   const textDisplayRef = useRef<HTMLDivElement>(null);
-  
+
   useEffect(() => {
     setLoading(true);
     setError(null);
-    console.log(`Attempting to load PDF from: ${pdfPath}`);
     
-    // Reset retry count when worksheet or page changes
     if (worksheetId || pageIndex) {
       setRetryCount(0);
     }
 
-    // Reset active region when worksheet or page changes
     setActiveRegion(null);
     setCurrentStepIndex(0);
     setDisplayedMessages([]);
-    
-    // Reset text mode when worksheet or page changes
     setIsTextMode(false);
-    
-    // Reset video display
     setShowVideo(false);
     setIsAudioPlaying(false);
     
-    // Stop any playing audio when worksheet or page changes
     if (audioRef.current) {
       audioRef.current.pause();
       audioRef.current.currentTime = 0;
     }
     
-    // Reset video to intro state
     if (videoRef.current) {
       videoRef.current.pause();
       videoRef.current.currentTime = 0;
     }
   }, [worksheetId, pageIndex, pdfPath]);
   
-  // Fetch metadata JSON
   useEffect(() => {
     const fetchMetadata = async () => {
       try {
@@ -105,23 +89,18 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
         
         const data = await response.json();
         setMetadata(data);
-        console.log("Metadata loaded:", data);
         
-        // Check if current page is DRM protected
         if (data.drmProtectedPages && Array.isArray(data.drmProtectedPages)) {
           setIsCurrentPageDrmProtected(data.drmProtectedPages.includes(pageIndex));
-          console.log(`Page ${pageIndex} DRM protected: ${data.drmProtectedPages.includes(pageIndex)}`);
         } else {
           setIsCurrentPageDrmProtected(false);
         }
         
-        // Filter regions for current page
         if (data && data.regions) {
           const regions = data.regions.filter(
             (region: RegionData) => region.page === pageIndex
           );
           setFilteredRegions(regions);
-          console.log(`Found ${regions.length} regions for page ${pageIndex}`);
         }
       } catch (err) {
         console.error("Error loading metadata:", err);
@@ -133,23 +112,19 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
     }
   }, [worksheetId, pageIndex]);
   
-  // Calculate PDF position and scale factor more accurately
   useEffect(() => {
     const calculatePdfPositionAndScale = () => {
       if (pdfContainerRef.current) {
         const pdfCanvas = pdfContainerRef.current.querySelector('.react-pdf__Page__canvas') as HTMLCanvasElement | null;
         
         if (pdfCanvas && pdfDimensions.width > 0) {
-          // Get the bounding rectangles
           const containerRect = pdfContainerRef.current.getBoundingClientRect();
           const canvasRect = pdfCanvas.getBoundingClientRect();
           
-          // Calculate the PDF position relative to its container
           const top = canvasRect.top - containerRect.top;
           const left = canvasRect.left - containerRect.left;
           setPdfPosition({ top, left });
           
-          // Calculate scale factor based on rendered width vs natural width
           const newScaleFactor = canvasRect.width / pdfDimensions.width;
           setScaleFactor(newScaleFactor);
         }
@@ -158,7 +133,6 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
     
     calculatePdfPositionAndScale();
     
-    // Set up ResizeObserver to handle window resize events
     const resizeObserver = new ResizeObserver(() => {
       calculatePdfPositionAndScale();
     });
@@ -167,13 +141,11 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
       resizeObserver.observe(pdfContainerRef.current);
     }
     
-    // Clean up observer
     return () => {
       resizeObserver.disconnect();
     };
   }, [pdfDimensions.width, pdfContainerRef.current]);
 
-  // Auto-scroll the text display area to the bottom when displayedMessages changes
   useEffect(() => {
     if (textDisplayRef.current && displayedMessages.length > 0) {
       const textDisplay = textDisplayRef.current;
@@ -181,19 +153,15 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
     }
   }, [displayedMessages]);
 
-  // Fix issue 2: Modify the video-audio synchronization to prevent auto-progression
   useEffect(() => {
     if (!videoRef.current || !audioRef.current) return;
     
     const video = videoRef.current;
     const audio = audioRef.current;
     
-    // Event handlers for audio
     const handleAudioPlaying = () => {
-      console.log('Audio started playing - activating main animation loop');
       setIsAudioPlaying(true);
       
-      // Start the main animation loop (seconds 10-20)
       if (video.paused) {
         video.currentTime = 10;
         video.play().catch(err => console.error("Error playing video:", err));
@@ -201,43 +169,33 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
     };
     
     const handleAudioPause = () => {
-      console.log('Audio paused - returning to intro/idle loop');
       setIsAudioPlaying(false);
     };
     
     const handleAudioEnded = () => {
-      console.log('Audio ended');
       setIsAudioPlaying(false);
     };
     
-    // Event handler for video
     const handleVideoTimeUpdate = () => {
-      // If the video is in the main animation loop (10-20 seconds)
       if (video.currentTime >= 20) {
-        // Loop back to second 10 (start of main animation)
         video.currentTime = 10;
       }
       
-      // If the video is in the intro/idle loop (0-9.9 seconds) and audio is not playing
       if (video.currentTime >= 9.9 && !isAudioPlaying) {
-        // Loop back to second 0 (start of intro/idle animation)
         video.currentTime = 0;
       }
       
-      // If audio is playing but video is in intro loop, jump to main loop
       if (isAudioPlaying && video.currentTime < 10) {
         video.currentTime = 10;
       }
     };
     
-    // Add event listeners
     audio.addEventListener('playing', handleAudioPlaying);
     audio.addEventListener('pause', handleAudioPause);
     audio.addEventListener('ended', handleAudioEnded);
     video.addEventListener('timeupdate', handleVideoTimeUpdate);
     
     return () => {
-      // Remove event listeners on cleanup
       audio.removeEventListener('playing', handleAudioPlaying);
       audio.removeEventListener('pause', handleAudioPause);
       audio.removeEventListener('ended', handleAudioEnded);
@@ -262,7 +220,6 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
     setLoading(false);
   };
   
-  // Handle page render success to get natural dimensions
   const onPageLoadSuccess = (page: any) => {
     const { width, height } = page.originalWidth 
       ? { width: page.originalWidth, height: page.originalHeight }
@@ -270,7 +227,6 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
       
     setPdfDimensions({ width, height });
     
-    // Trigger position calculation when page loads
     setTimeout(() => {
       const pdfCanvas = pdfContainerRef.current?.querySelector('.react-pdf__Page__canvas') as HTMLCanvasElement | null;
       if (pdfCanvas) {
@@ -284,71 +240,53 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
         const newScaleFactor = canvasRect.width / width;
         setScaleFactor(newScaleFactor);
       }
-    }, 100); // Small delay to ensure canvas is rendered
+    }, 100);
   };
   
-  // Function to play audio segment with proper video synchronization
   const playAudioSegment = (regionName: string, stepIndex: number) => {
     if (!audioRef.current) return;
     
-    // Construct the audio file path
     const audioPath = `/audio/${worksheetId}/${regionName}_${stepIndex + 1}.mp3`;
     
-    // Set the source and load the audio
     audioRef.current.src = audioPath;
     
-    // Handle audio loading errors
     audioRef.current.onerror = () => {
       console.error(`Failed to load audio: ${audioPath}`);
       setIsAudioPlaying(false);
     };
     
-    // Play the audio
     audioRef.current.play().catch(err => {
       console.error("Error playing audio:", err);
       setIsAudioPlaying(false);
     });
   };
   
-  // Handle region click
   const handleRegionClick = (region: RegionData) => {
-    // Reset step index whether clicking same or different region
     setCurrentStepIndex(0);
     
-    // Initialize displayed messages with just the first message
     if (region.description && region.description.length > 0) {
       setDisplayedMessages([region.description[0]]);
-      
-      // Show video if region has description (assuming it has audio)
       setShowVideo(true);
       
-      // Ensure video is ready and at intro loop
       if (videoRef.current) {
         videoRef.current.currentTime = 0;
         videoRef.current.play().catch(err => console.error("Error playing video:", err));
       }
       
-      // Play audio for the first step with a slight delay
       setTimeout(() => {
         playAudioSegment(region.name, 0);
       }, 500);
     } else {
       setDisplayedMessages([]);
-      // Hide video if region has no description
       setShowVideo(false);
     }
     
-    // Set active region
     setActiveRegion(region);
-    
-    // Set to text mode when a region is clicked
     setIsTextMode(true);
   };
   
-  // Handle Next button click - now appends the next message to displayedMessages
   const handleNextStep = () => {
     if (activeRegion && activeRegion.description && currentStepIndex < activeRegion.description.length - 1) {
-      // Stop current audio if playing
       if (audioRef.current) {
         audioRef.current.pause();
       }
@@ -356,27 +294,22 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
       const nextStepIndex = currentStepIndex + 1;
       setCurrentStepIndex(nextStepIndex);
       
-      // Add the next message to displayed messages array
       setDisplayedMessages(prevMessages => [
         ...prevMessages,
         activeRegion.description[nextStepIndex]
       ]);
       
-      // Play audio for the next step with delay to allow video to sync
       setTimeout(() => {
         playAudioSegment(activeRegion.name, nextStepIndex);
       }, 500);
     }
   };
   
-  // Toggle text mode on double click - Modified to stop audio/video when switching to PDF view
   const handleDoubleClick = () => {
-    // Only toggle if there's an active region
     if (activeRegion) {
       const newTextMode = !isTextMode;
       setIsTextMode(newTextMode);
       
-      // If switching to PDF mode, stop any playing audio and video
       if (!newTextMode) {
         if (audioRef.current) {
           audioRef.current.pause();
@@ -389,13 +322,11 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
         
         setIsAudioPlaying(false);
       } else {
-        // If switching to text mode, ensure video is in intro state
         if (videoRef.current && showVideo) {
           videoRef.current.currentTime = 0;
           videoRef.current.play().catch(err => console.error("Error playing video:", err));
         }
         
-        // If switching to text mode, replay the current step's audio
         if (activeRegion) {
           setTimeout(() => {
             playAudioSegment(activeRegion.name, currentStepIndex);
@@ -405,12 +336,10 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
     }
   };
 
-  // Prevent right-click on video
   const handleVideoContextMenu = (e: React.MouseEvent) => {
     e.preventDefault();
   };
   
-  // Check if we can go to the next step
   const hasNextStep = activeRegion?.description && currentStepIndex < activeRegion.description.length - 1;
 
   return (
@@ -419,10 +348,8 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
       ref={pdfContainerRef}
       onDoubleClick={handleDoubleClick}
     >
-      {/* Audio element for playback */}
       <audio ref={audioRef} className="hidden" />
       
-      {/* PDF Document and regions - hidden in text mode */}
       <div className={`worksheet-pdf-container ${isTextMode ? 'hidden' : ''} ${isCurrentPageDrmProtected ? 'drm-active' : ''}`}>
         <Document
           file={pdfPath}
@@ -440,7 +367,6 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
           />
         </Document>
         
-        {/* Unblurred region overlays for DRM protected pages */}
         {isCurrentPageDrmProtected && !isTextMode && !loading && !error && filteredRegions.map((region) => (
           <div
             key={`clear-${region.id}`}
@@ -453,7 +379,7 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
               height: `${region.height * scaleFactor}px`,
               overflow: 'hidden',
               zIndex: 5,
-              border: '1px solid rgba(0,0,0,0.1)', // Subtle border for debugging
+              border: '1px solid rgba(0,0,0,0.1)',
             }}
           >
             <Document
@@ -465,8 +391,8 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
                   position: 'absolute',
                   left: `-${region.x * scaleFactor}px`,
                   top: `-${region.y * scaleFactor}px`,
-                  width: `${pdfDimensions.width * scaleFactor}px`, // Set full document width
-                  height: `${pdfDimensions.height * scaleFactor}px`, // Set full document height
+                  width: `${pdfDimensions.width * scaleFactor}px`,
+                  height: `${pdfDimensions.height * scaleFactor}px`,
                 }}
               >
                 <Page
@@ -481,7 +407,6 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
           </div>
         ))}
         
-        {/* Clickable region overlays */}
         {!loading && !error && filteredRegions.map((region) => (
           <div
             key={region.id}
@@ -500,10 +425,17 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
         ))}
       </div>
       
-      {/* Text display area - Only shown in text mode */}
       {activeRegion && (
         <div className={`worksheet-text-display-container ${isTextMode ? 'active' : 'hidden'}`}>
-          {/* Video element for avatar - moved inside text display container */}
+          {/* Back button */}
+          <Button
+            onClick={handleDoubleClick}
+            className="fixed top-4 left-4 z-50 rounded-full bg-blue-500 hover:bg-blue-600 text-white shadow-lg"
+            size="icon"
+          >
+            <ChevronLeft className="h-5 w-5" />
+          </Button>
+
           <video 
             ref={videoRef}
             className={`video-element ${showVideo ? '' : 'hidden'}`}
