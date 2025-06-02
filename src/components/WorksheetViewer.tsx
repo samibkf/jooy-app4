@@ -1,10 +1,9 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Document, Page, pdfjs } from "react-pdf";
 import "../styles/Worksheet.css";
-import { toast } from "@/components/ui/use-toast";
 import { Button } from "@/components/ui/button";
 import { RegionData, WorksheetMetadata } from "@/types/worksheet";
-import { ChevronRight } from "lucide-react";
+import { Sparkles } from "lucide-react";
 
 // Set up the worker for react-pdf
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.js`;
@@ -64,12 +63,6 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
     setLoading(true);
     setError(null);
     console.log(`Attempting to load PDF from: ${pdfPath}`);
-    
-    // Show toast when starting to load PDF
-    toast({
-      title: "Loading PDF",
-      description: `Trying to load from ${pdfPath}`,
-    });
     
     // Reset retry count when worksheet or page changes
     if (worksheetId || pageIndex) {
@@ -132,11 +125,6 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
         }
       } catch (err) {
         console.error("Error loading metadata:", err);
-        toast({
-          title: "Failed to load worksheet data",
-          description: err instanceof Error ? err.message : "Unknown error",
-          variant: "destructive"
-        });
       }
     };
     
@@ -164,9 +152,6 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
           // Calculate scale factor based on rendered width vs natural width
           const newScaleFactor = canvasRect.width / pdfDimensions.width;
           setScaleFactor(newScaleFactor);
-          
-          console.log(`PDF position updated: top=${top}, left=${left}`);
-          console.log(`Scale factor updated: ${newScaleFactor} (rendered: ${canvasRect.width}, natural: ${pdfDimensions.width})`);
         }
       }
     };
@@ -218,8 +203,6 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
     const handleAudioPause = () => {
       console.log('Audio paused - returning to intro/idle loop');
       setIsAudioPlaying(false);
-      
-      // Video will transition back to intro loop via timeupdate handler
     };
     
     const handleAudioEnded = () => {
@@ -266,31 +249,17 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
     setRetryCount(prev => prev + 1);
     setLoading(true);
     setError(null);
-    toast({
-      title: "Retrying PDF load",
-      description: "Attempting to reload the PDF...",
-    });
   };
 
   const onDocumentLoadSuccess = ({ numPages }: { numPages: number }) => {
-    console.log("PDF loaded successfully with", numPages, "pages");
     setNumPages(numPages);
     setLoading(false);
-    toast({
-      title: "PDF Loaded Successfully",
-      description: `${numPages} pages available`,
-    });
   };
 
   const onDocumentLoadError = (err: Error) => {
     console.error("Error loading PDF:", err);
     setError("PDF not found or unable to load");
     setLoading(false);
-    toast({
-      title: "PDF Load Error",
-      description: "Could not load the PDF file",
-      variant: "destructive"
-    });
   };
   
   // Handle page render success to get natural dimensions
@@ -300,7 +269,6 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
       : page.getViewport({ scale: 1 });
       
     setPdfDimensions({ width, height });
-    console.log(`PDF natural dimensions: ${width}x${height}`);
     
     // Trigger position calculation when page loads
     setTimeout(() => {
@@ -315,9 +283,6 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
         
         const newScaleFactor = canvasRect.width / width;
         setScaleFactor(newScaleFactor);
-        
-        console.log(`Initial PDF position: top=${top}, left=${left}`);
-        console.log(`Initial scale factor: ${newScaleFactor}`);
       }
     }, 100); // Small delay to ensure canvas is rendered
   };
@@ -335,11 +300,6 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
     // Handle audio loading errors
     audioRef.current.onerror = () => {
       console.error(`Failed to load audio: ${audioPath}`);
-      toast({
-        title: "Audio Error",
-        description: "Could not load the audio file",
-        variant: "destructive"
-      });
       setIsAudioPlaying(false);
     };
     
@@ -352,8 +312,6 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
   
   // Handle region click
   const handleRegionClick = (region: RegionData) => {
-    console.log(`Region clicked: ${region.name}`);
-    
     // Reset step index whether clicking same or different region
     setCurrentStepIndex(0);
     
@@ -385,11 +343,6 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
     
     // Set to text mode when a region is clicked
     setIsTextMode(true);
-    
-    toast({
-      title: "Region Selected",
-      description: `You clicked on: ${region.name}`,
-    });
   };
   
   // Handle Next button click - now appends the next message to displayedMessages
@@ -428,12 +381,10 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
         if (audioRef.current) {
           audioRef.current.pause();
           audioRef.current.currentTime = 0;
-          console.log("Audio stopped due to switching to PDF view");
         }
         
         if (videoRef.current) {
           videoRef.current.pause();
-          console.log("Video stopped due to switching to PDF view");
         }
         
         setIsAudioPlaying(false);
@@ -452,6 +403,11 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
         }
       }
     }
+  };
+
+  // Prevent right-click on video
+  const handleVideoContextMenu = (e: React.MouseEvent) => {
+    e.preventDefault();
   };
   
   // Check if we can go to the next step
@@ -556,13 +512,13 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
             autoPlay
             playsInline
             preload="auto"
+            onContextMenu={handleVideoContextMenu}
           />
           
           <div 
             className="worksheet-text-display"
             ref={textDisplayRef}
           >
-            <h3 className="text-lg font-semibold mb-2">{activeRegion.name}</h3>
             <div className="text-content chat-messages">
               {displayedMessages.map((message, index) => (
                 <div key={index} className="chat-message">
@@ -573,10 +529,10 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
             {hasNextStep && isTextMode && (
               <Button 
                 onClick={handleNextStep} 
-                className="next-button mt-3"
-                variant="default"
+                className="next-button mt-3 rounded-full bg-gradient-to-r from-blue-500 to-blue-700 hover:from-blue-600 hover:to-blue-800 text-white"
+                size="icon"
               >
-                Next <ChevronRight className="ml-1" />
+                <Sparkles className="h-5 w-5" />
               </Button>
             )}
           </div>
