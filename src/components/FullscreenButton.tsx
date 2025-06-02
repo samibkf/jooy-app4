@@ -36,7 +36,7 @@ const FullscreenButton: React.FC = () => {
       variant="ghost"
       aria-label="Toggle Fullscreen"
     >
-      <Fullscreen className="h-6 w-6 text-red-500" />
+      <Fullscreen className="h-8 w-8 text-blue-600" />
     </Button>
   );
 };
