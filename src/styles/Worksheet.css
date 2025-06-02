@@ -188,6 +188,33 @@
   border-radius: 0.75rem;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
   animation: fadeIn 0.3s ease-in-out;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.chat-message:hover {
+  background-color: #f0f4f8;
+  transform: translateX(2px);
+}
+
+.chat-message:active {
+  transform: translateX(0);
+}
+
+.message-highlight {
+  animation: highlight 0.2s ease-in-out;
+}
+
+@keyframes highlight {
+  0% {
+    background-color: #f8f9fa;
+  }
+  50% {
+    background-color: #e3f2fd;
+  }
+  100% {
+    background-color: #f8f9fa;
+  }
 }
 
 @keyframes fadeIn {

@@ -45,6 +45,24 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
   const videoRef = useRef<HTMLVideoElement>(null);
   const textDisplayRef = useRef<HTMLDivElement>(null);
 
+  const handleMessageClick = (index: number) => {
+    if (!activeRegion) return;
+    
+    if (audioRef.current) {
+      audioRef.current.pause();
+    }
+    
+    playAudioSegment(activeRegion.name, index);
+    
+    const messageElement = document.querySelector(`[data-message-index="${index}"]`);
+    if (messageElement) {
+      messageElement.classList.add('message-highlight');
+      setTimeout(() => {
+        messageElement.classList.remove('message-highlight');
+      }, 200);
+    }
+  };
+
   useEffect(() => {
     setLoading(true);
     setError(null);
@@ -446,7 +464,19 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
           >
             <div className="text-content chat-messages">
               {displayedMessages.map((message, index) => (
-                <div key={index} className="chat-message">
+                <div 
+                  key={index} 
+                  className="chat-message"
+                  onClick={() => handleMessageClick(index)}
+                  data-message-index={index}
+                  role="button"
+                  tabIndex={0}
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      handleMessageClick(index);
+                    }
+                  }}
+                >
                   <p>{message}</p>
                 </div>
               ))}
