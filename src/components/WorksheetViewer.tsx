@@ -508,12 +508,6 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
           <p>Double-click anywhere to return to PDF view</p>
         </div>
       )}
-      
-      {isCurrentPageDrmProtected && !isTextMode && !loading && !error && (
-        <div className="drm-notice">
-          <p>This page has content protection enabled</p>
-        </div>
-      )}
     </div>
   );
 };
