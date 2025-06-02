@@ -1,8 +1,7 @@
-
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ScanBarcode } from "lucide-react";
+import { QrCode } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
 
 const QRScannerButton: React.FC = () => {
@@ -19,11 +18,11 @@ const QRScannerButton: React.FC = () => {
   return (
     <Button
       onClick={handleClick}
-      className="fixed top-4 right-4 z-50 bg-blue-500 hover:bg-blue-600 rounded-full p-2 shadow-lg"
+      className="fixed top-4 right-4 z-50 rounded-full bg-gradient-to-r from-blue-500 to-blue-700 hover:from-blue-600 hover:to-blue-800 text-white shadow-lg"
       size="icon"
       aria-label="Scan QR Code"
     >
-      <ScanBarcode className="h-5 w-5" />
+      <QrCode className="h-5 w-5" />
     </Button>
   );
 };
