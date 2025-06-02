@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Fullscreen } from "lucide-react";
+import { Maximize } from "lucide-react";
 
 const FullscreenButton: React.FC = () => {
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -40,7 +40,7 @@ const FullscreenButton: React.FC = () => {
       variant="ghost"
       aria-label="Toggle Fullscreen"
     >
-      <Fullscreen className="h-20 w-20 text-blue-600" />
+      <Maximize className="h-20 w-20 text-blue-600" />
     </Button>
   );
 };
