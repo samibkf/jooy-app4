@@ -24,15 +24,10 @@ const App = () => (
           <Route path="/home" element={<Index />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
-        {/* Add the QR Scanner button and Fullscreen button to all routes except the QR scanner page */}
+        <FullscreenButton />
         <Routes>
           <Route path="/" element={null} />
-          <Route path="*" element={
-            <>
-              <QRScannerButton />
-              <FullscreenButton />
-            </>
-          } />
+          <Route path="*" element={<QRScannerButton />} />
         </Routes>
       </BrowserRouter>
     </TooltipProvider>
