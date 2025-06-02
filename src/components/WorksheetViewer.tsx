@@ -4,7 +4,7 @@ import "../styles/Worksheet.css";
 import { toast } from "@/components/ui/use-toast";
 import { Button } from "@/components/ui/button";
 import { RegionData, WorksheetMetadata } from "@/types/worksheet";
-import { ArrowLeft, Sparkles } from "lucide-react";
+import { ChevronLeft, Sparkles } from "lucide-react";
 
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.js`;
 
@@ -363,11 +363,10 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
       {isTextMode && (
         <Button
           onClick={handleDoubleClick}
-          className="fixed top-4 left-4 z-70 rounded-full bg-transparent hover:bg-transparent h-50 w-50"
-          variant="ghost"
-          aria-label="Back to PDF view"
+          className="fixed top-4 left-4 z-70 rounded-full bg-gradient-to-r from-blue-500 to-blue-700 hover:from-blue-600 hover:to-blue-800 text-white shadow-lg"
+          size="icon"
         >
-          <ArrowLeft className="h-50 w-50 text-blue-600" />
+          <ChevronLeft className="h-5 w-5" />
         </Button>
       )}
       
@@ -501,6 +500,12 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
           <p className="text-sm text-gray-500 mt-2">
             Page 1 of {numPages}
           </p>
+        </div>
+      )}
+      
+      {isTextMode && (
+        <div className="text-mode-instructions">
+          <p>Double-click anywhere to return to PDF view</p>
         </div>
       )}
       

@@ -18,9 +18,6 @@ export default {
 			}
 		},
 		extend: {
-			spacing: {
-				'50': '12.5rem', // This adds support for h-50 and w-50 (equals 200px)
-			},
 			zIndex: {
 				'60': '60',
 				'70': '70',
