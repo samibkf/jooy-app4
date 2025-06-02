@@ -488,8 +488,8 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
       {hasNextStep && isTextMode && (
         <Button 
           onClick={handleNextStep} 
-          className="next-button"
-          variant="default"
+          className="next-button rounded-full bg-gradient-to-r from-blue-500 to-blue-700 hover:from-blue-600 hover:to-blue-800 text-white shadow-lg"
+          size="icon"
         >
           <Sparkles className="!h-6 !w-6" />
         </Button>
