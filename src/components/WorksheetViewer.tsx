@@ -437,13 +437,13 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
             autoPlay
             playsInline
             preload="auto"
+            onContextMenu={handleVideoContextMenu}
           />
           
           <div 
             className="worksheet-text-display"
             ref={textDisplayRef}
           >
-            <h3 className="text-lg font-semibold mb-2">{activeRegion.name}</h3>
             <div className="text-content chat-messages">
               {displayedMessages.map((message, index) => (
                 <div key={index} className="chat-message">
