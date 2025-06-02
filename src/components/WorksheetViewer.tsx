@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Document, Page, pdfjs } from "react-pdf";
 import "../styles/Worksheet.css";
+import { toast } from "@/components/ui/use-toast";
 import { Button } from "@/components/ui/button";
 import { RegionData, WorksheetMetadata } from "@/types/worksheet";
-import { ChevronLeft, Sparkles } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 // Set up the worker for react-pdf
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.js`;
@@ -350,6 +351,17 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
     >
       <audio ref={audioRef} className="hidden" />
       
+      {/* Back button in text mode */}
+      {isTextMode && (
+        <Button
+          onClick={handleDoubleClick}
+          className="fixed top-4 left-4 z-70 rounded-full bg-gradient-to-r from-blue-500 to-blue-700 hover:from-blue-600 hover:to-blue-800 text-white shadow-lg"
+          size="icon"
+        >
+          <ChevronLeft className="h-5 w-5" />
+        </Button>
+      )}
+      
       <div className={`worksheet-pdf-container ${isTextMode ? 'hidden' : ''} ${isCurrentPageDrmProtected ? 'drm-active' : ''}`}>
         <Document
           file={pdfPath}
@@ -427,15 +439,6 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
       
       {activeRegion && (
         <div className={`worksheet-text-display-container ${isTextMode ? 'active' : 'hidden'}`}>
-          {/* Back button */}
-          <Button
-            onClick={handleDoubleClick}
-            className="fixed top-4 left-4 z-50 rounded-full bg-blue-500 hover:bg-blue-600 text-white shadow-lg"
-            size="icon"
-          >
-            <ChevronLeft className="h-5 w-5" />
-          </Button>
-
           <video 
             ref={videoRef}
             className={`video-element ${showVideo ? '' : 'hidden'}`}
@@ -464,7 +467,7 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
                 className="next-button mt-3 rounded-full bg-gradient-to-r from-blue-500 to-blue-700 hover:from-blue-600 hover:to-blue-800 text-white"
                 size="icon"
               >
-                <Sparkles className="h-5 w-5" />
+                <ChevronRight className="h-5 w-5" />
               </Button>
             )}
           </div>
