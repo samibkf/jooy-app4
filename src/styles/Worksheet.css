@@ -105,7 +105,6 @@
   transition: all 0.3s ease;
   display: block;
   z-index: 60;
-  position: relative;
 }
 
 .video-element.hidden {
@@ -140,26 +139,28 @@
 
 .worksheet-text-display {
   margin-top: 1rem;
-  padding: 1rem;
-  background-color: #f8f9fa;
+  padding: 1.5rem;
+  background-color: #ffffff;
   border: 1px solid #dee2e6;
-  border-radius: 8px;
+  border-radius: 12px;
   width: 100%;
   max-width: 600px;
   min-height: 150px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   transition: all 0.3s ease;
   position: relative;
   overflow-y: auto;
-  max-height: calc(100vh - 250px);
+  max-height: calc(100vh - 180px);
   margin-bottom: 80px;
+  font-size: 1.1rem;
+  line-height: 1.6;
 }
 
 .worksheet-text-display-container.active .worksheet-text-display {
   width: 90%;
   max-width: 90%;
   min-height: 50vh;
-  max-height: calc(100vh - 250px);
+  max-height: calc(100vh - 180px);
   margin: 0 auto;
   padding: 2rem;
   border-radius: 16px;
@@ -172,26 +173,22 @@
 
 .worksheet-text-display h3 {
   color: #0d6efd;
-  margin-bottom: 0.5rem;
-}
-
-.worksheet-text-display .text-content {
-  font-size: 1rem;
-  line-height: 1.6;
+  margin-bottom: 1rem;
+  font-size: 1.5rem;
 }
 
 .chat-messages {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 1rem;
 }
 
 .chat-message {
-  padding: 0.75rem 1rem;
-  background-color: #ffffff;
-  border-left: 3px solid #0d6efd;
-  border-radius: 0.5rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  padding: 1rem 1.25rem;
+  background-color: #f8f9fa;
+  border-left: 4px solid #0d6efd;
+  border-radius: 0.75rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
   animation: fadeIn 0.3s ease-in-out;
 }
 
@@ -208,18 +205,19 @@
 
 .chat-message p {
   margin: 0;
+  color: #2c3e50;
 }
 
 .text-mode-instructions {
   position: fixed;
-  bottom: 20px;
+  bottom: 80px;
   left: 50%;
   transform: translateX(-50%);
-  background-color: rgba(0, 0, 0, 0.7);
+  background-color: rgba(0, 0, 0, 0.8);
   color: white;
   padding: 8px 16px;
   border-radius: 20px;
-  font-size: 0.85rem;
+  font-size: 0.9rem;
   z-index: 80;
   opacity: 0.8;
   transition: opacity 0.3s ease;
@@ -237,8 +235,9 @@
   
   .worksheet-text-display {
     max-width: 100%;
-    padding: 1rem;
+    padding: 1.25rem;
     margin-bottom: 100px;
+    font-size: 1rem;
   }
   
   .video-element {
@@ -248,13 +247,19 @@
   .worksheet-text-display-container.active .worksheet-text-display {
     width: 100%;
     max-width: 100%;
-    height: calc(100vh - 250px);
+    height: calc(100vh - 180px);
     margin-top: 1rem;
+    padding: 1.25rem;
+  }
+
+  .chat-message {
     padding: 1rem;
   }
 
   .text-mode-instructions {
-    bottom: 80px;
+    bottom: 100px;
+    font-size: 0.85rem;
+    padding: 8px 12px;
   }
 }
 
@@ -286,4 +291,36 @@
 .clear-page {
   width: 100%;
   height: auto;
+}
+
+.next-button {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 70;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+  border-radius: 9999px;
+  background: linear-gradient(to right, #3b82f6, #1d4ed8);
+  color: white;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.next-button:hover {
+  background: linear-gradient(to right, #2563eb, #1e40af);
+  transform: translateX(-50%) translateY(-2px);
+  box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
+}
+
+@media (max-width: 768px) {
+  .next-button {
+    bottom: 16px;
+    padding: 0.625rem 1.25rem;
+    font-size: 0.9rem;
+  }
 }
