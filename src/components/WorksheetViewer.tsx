@@ -363,11 +363,11 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
       {isTextMode && (
         <Button
           onClick={handleDoubleClick}
-          className="fixed top-4 left-4 z-70 rounded-full bg-transparent hover:bg-transparent h-20 w-20"
+          className="fixed top-4 left-4 z-70 rounded-full bg-transparent hover:bg-transparent h-50 w-50"
           variant="ghost"
           aria-label="Back to PDF view"
         >
-          <ArrowLeft className="h-20 w-20 text-blue-600" />
+          <ArrowLeft className="h-50 w-50 text-blue-600" />
         </Button>
       )}
       
