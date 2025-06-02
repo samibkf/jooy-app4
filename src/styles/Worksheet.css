@@ -300,8 +300,8 @@
   transform: translateX(-50%);
   z-index: 70;
   transition: all 0.3s ease;
-  width: 72px !important;
-  height: 72px !important;
+  width: 56px !important;
+  height: 56px !important;
   padding: 0 !important;
   display: flex;
   align-items: center;
@@ -326,12 +326,12 @@
 @media (max-width: 768px) {
   .next-button {
     bottom: 24px;
-    width: 64px !important;
-    height: 64px !important;
+    width: 48px !important;
+    height: 48px !important;
   }
   
   .next-button svg {
-    width: 28px !important;
-    height: 28px !important;
+    width: 24px !important;
+    height: 24px !important;
   }
 }

@@ -461,7 +461,7 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
           className="next-button"
           variant="default"
         >
-          <Sparkles className="!h-8 !w-8" />
+          <Sparkles className="!h-6 !w-6" />
         </Button>
       )}
       
