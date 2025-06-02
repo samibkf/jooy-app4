@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -9,6 +8,7 @@ import NotFound from "./pages/NotFound";
 import QrScannerPage from "./pages/QrScannerPage";
 import WorksheetPage from "./pages/WorksheetPage";
 import QRScannerButton from "./components/QRScannerButton";
+import FullscreenButton from "./components/FullscreenButton";
 
 const queryClient = new QueryClient();
 
@@ -24,10 +24,15 @@ const App = () => (
           <Route path="/home" element={<Index />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
-        {/* Add the QR Scanner button to all routes except the QR scanner page */}
+        {/* Add the QR Scanner button and Fullscreen button to all routes except the QR scanner page */}
         <Routes>
           <Route path="/" element={null} />
-          <Route path="*" element={<QRScannerButton />} />
+          <Route path="*" element={
+            <>
+              <QRScannerButton />
+              <FullscreenButton />
+            </>
+          } />
         </Routes>
       </BrowserRouter>
     </TooltipProvider>
