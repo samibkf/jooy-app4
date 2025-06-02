@@ -2,6 +2,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   max-width: 100%;
   overflow-x: auto;
   background-color: white;
@@ -9,6 +10,7 @@
   padding: 0.25rem;
   position: relative;
   transition: all 0.3s ease;
+  min-height: 100vh;
 }
 
 .worksheet-container.text-mode {
@@ -22,6 +24,9 @@
   left: 0;
   z-index: 50;
   border-radius: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .worksheet-page {

@@ -2,17 +2,12 @@ import React from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { QrCode } from "lucide-react";
-import { toast } from "@/components/ui/use-toast";
 
 const QRScannerButton: React.FC = () => {
   const navigate = useNavigate();
 
   const handleClick = () => {
     navigate("/");
-    toast({
-      title: "QR Scanner Activated",
-      description: "Position the QR code within the frame to scan",
-    });
   };
 
   return (
