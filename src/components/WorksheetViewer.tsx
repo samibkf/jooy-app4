@@ -461,17 +461,19 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
                 </div>
               ))}
             </div>
-            {hasNextStep && isTextMode && (
-              <Button 
-                onClick={handleNextStep} 
-                className="next-button mt-3 rounded-full bg-gradient-to-r from-blue-500 to-blue-700 hover:from-blue-600 hover:to-blue-800 text-white"
-                size="icon"
-              >
-                <ChevronRight className="h-5 w-5" />
-              </Button>
-            )}
           </div>
         </div>
+      )}
+
+      {/* Next button - Fixed position when in text mode */}
+      {hasNextStep && isTextMode && (
+        <Button 
+          onClick={handleNextStep} 
+          className="fixed bottom-4 right-4 z-70 rounded-full bg-gradient-to-r from-blue-500 to-blue-700 hover:from-blue-600 hover:to-blue-800 text-white shadow-lg"
+          size="icon"
+        >
+          <ChevronRight className="h-5 w-5" />
+        </Button>
       )}
       
       {!isTextMode && numPages && numPages > 0 && !error && !loading && (
