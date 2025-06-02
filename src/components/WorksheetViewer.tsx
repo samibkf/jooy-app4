@@ -4,9 +4,8 @@ import "../styles/Worksheet.css";
 import { toast } from "@/components/ui/use-toast";
 import { Button } from "@/components/ui/button";
 import { RegionData, WorksheetMetadata } from "@/types/worksheet";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, Sparkles } from "lucide-react";
 
-// Set up the worker for react-pdf
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.js`;
 
 interface WorksheetViewerProps {
@@ -462,7 +461,7 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
           className="next-button"
           variant="default"
         >
-          <ChevronRight className="h-6 w-6" />
+          <Sparkles className="h-6 w-6" />
         </Button>
       )}
       
