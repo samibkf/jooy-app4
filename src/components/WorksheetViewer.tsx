@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { Document, Page, pdfjs } from "react-pdf";
 import "../styles/Worksheet.css";
 import { toast } from "@/components/ui/use-toast";
@@ -18,8 +18,9 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [retryCount, setRetryCount] = useState<number>(0);
+  const [pdfInstance, setPdfInstance] = useState<any>(null);
   
-  const pdfPath = `/pdfs/${worksheetId}/${pageIndex}.pdf?v=${retryCount}`;
+  const pdfPath = useMemo(() => `/pdfs/${worksheetId}/${pageIndex}.pdf?v=${retryCount}`, [worksheetId, pageIndex, retryCount]);
   
   const [metadata, setMetadata] = useState<WorksheetMetadata | null>(null);
   const [filteredRegions, setFilteredRegions] = useState<RegionData[]>([]);
@@ -66,6 +67,7 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
   useEffect(() => {
     setLoading(true);
     setError(null);
+    setPdfInstance(null);
     
     if (worksheetId || pageIndex) {
       setRetryCount(0);
@@ -86,6 +88,7 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
     if (videoRef.current) {
       videoRef.current.pause();
       videoRef.current.currentTime = 0;
+      videoRef.current.loop = false;
     }
   }, [worksheetId, pageIndex, pdfPath]);
   
@@ -174,29 +177,28 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
       
       if (video.paused) {
         video.currentTime = 10;
+        video.loop = true;
         video.play().catch(err => console.error("Error playing video:", err));
       }
     };
     
     const handleAudioPause = () => {
       setIsAudioPlaying(false);
+      video.currentTime = 0;
+      video.loop = false;
     };
     
     const handleAudioEnded = () => {
       setIsAudioPlaying(false);
+      video.currentTime = 0;
+      video.loop = false;
     };
     
     const handleVideoTimeUpdate = () => {
-      if (video.currentTime >= 20) {
+      if (isAudioPlaying && video.currentTime >= 20) {
         video.currentTime = 10;
-      }
-      
-      if (video.currentTime >= 9.9 && !isAudioPlaying) {
+      } else if (!isAudioPlaying && video.currentTime >= 9.9) {
         video.currentTime = 0;
-      }
-      
-      if (isAudioPlaying && video.currentTime < 10) {
-        video.currentTime = 10;
       }
     };
     
@@ -219,8 +221,9 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
     setError(null);
   };
 
-  const onDocumentLoadSuccess = ({ numPages }: { numPages: number }) => {
+  const onDocumentLoadSuccess = ({ numPages, pdfDocument }: { numPages: number, pdfDocument: any }) => {
     setNumPages(numPages);
+    setPdfInstance(pdfDocument);
     setLoading(false);
   };
 
@@ -280,6 +283,7 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
       
       if (videoRef.current) {
         videoRef.current.currentTime = 0;
+        videoRef.current.loop = false;
         videoRef.current.play().catch(err => console.error("Error playing video:", err));
       }
       
@@ -328,12 +332,15 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
         
         if (videoRef.current) {
           videoRef.current.pause();
+          videoRef.current.currentTime = 0;
+          videoRef.current.loop = false;
         }
         
         setIsAudioPlaying(false);
       } else {
         if (videoRef.current && showVideo) {
           videoRef.current.currentTime = 0;
+          videoRef.current.loop = false;
           videoRef.current.play().catch(err => console.error("Error playing video:", err));
         }
         
@@ -387,7 +394,7 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
           />
         </Document>
         
-        {isCurrentPageDrmProtected && !isTextMode && !loading && !error && filteredRegions.map((region) => (
+        {isCurrentPageDrmProtected && !isTextMode && !loading && !error && pdfInstance && filteredRegions.map((region) => (
           <div
             key={`clear-${region.id}`}
             className="worksheet-clear-region"
@@ -402,28 +409,23 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
               border: '1px solid rgba(0,0,0,0.1)',
             }}
           >
-            <Document
-              file={pdfPath}
-              className="clear-document"
+            <div
+              style={{
+                position: 'absolute',
+                left: `-${region.x * scaleFactor}px`,
+                top: `-${region.y * scaleFactor}px`,
+                width: `${pdfDimensions.width * scaleFactor}px`,
+                height: `${pdfDimensions.height * scaleFactor}px`,
+              }}
             >
-              <div
-                style={{
-                  position: 'absolute',
-                  left: `-${region.x * scaleFactor}px`,
-                  top: `-${region.y * scaleFactor}px`,
-                  width: `${pdfDimensions.width * scaleFactor}px`,
-                  height: `${pdfDimensions.height * scaleFactor}px`,
-                }}
-              >
-                <Page
-                  pageNumber={1}
-                  renderTextLayer={false}
-                  renderAnnotationLayer={false}
-                  width={window.innerWidth > 768 ? 600 : undefined}
-                  className="clear-page"
-                />
-              </div>
-            </Document>
+              <Page
+                pageNumber={1}
+                renderTextLayer={false}
+                renderAnnotationLayer={false}
+                width={window.innerWidth > 768 ? 600 : undefined}
+                className="clear-page"
+              />
+            </div>
           </div>
         ))}
         
