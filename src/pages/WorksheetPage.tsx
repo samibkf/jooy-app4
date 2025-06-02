@@ -1,8 +1,8 @@
-
 import React from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import WorksheetViewer from "@/components/WorksheetViewer";
 import { Button } from "@/components/ui/button";
+import { ChevronLeft } from "lucide-react";
 
 const WorksheetPage: React.FC = () => {
   const { id, n } = useParams<{ id: string; n: string }>();
@@ -42,6 +42,15 @@ const WorksheetPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 p-4">
+      <Button
+        onClick={goBack}
+        className="fixed top-4 left-4 z-50 rounded-full bg-white shadow-lg hover:bg-gray-100"
+        size="icon"
+        variant="ghost"
+      >
+        <ChevronLeft className="h-5 w-5" />
+      </Button>
+      
       <div className="bg-white rounded-lg shadow-md p-4">
         <h1 className="text-xl font-bold mb-4 text-blue-600">
           Worksheet: {id} - Page {pageIndex}
