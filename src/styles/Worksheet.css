@@ -300,9 +300,9 @@
   transform: translateX(-50%);
   z-index: 70;
   transition: all 0.3s ease;
-  width: 64px;
-  height: 64px;
-  padding: 0;
+  width: 72px !important;
+  height: 72px !important;
+  padding: 0 !important;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -310,7 +310,6 @@
   background: linear-gradient(135deg, #3b82f6, #1d4ed8);
   color: white;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  overflow: hidden;
 }
 
 .next-button:hover {
@@ -327,7 +326,12 @@
 @media (max-width: 768px) {
   .next-button {
     bottom: 24px;
-    width: 56px;
-    height: 56px;
+    width: 64px !important;
+    height: 64px !important;
+  }
+  
+  .next-button svg {
+    width: 28px !important;
+    height: 28px !important;
   }
 }
