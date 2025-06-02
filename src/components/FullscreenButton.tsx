@@ -28,10 +28,6 @@ const FullscreenButton: React.FC = () => {
     }
   };
 
-  if (isFullscreen) {
-    return null;
-  }
-
   return (
     <Button
       onClick={handleClick}
