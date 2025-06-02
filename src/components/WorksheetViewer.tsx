@@ -18,7 +18,6 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [retryCount, setRetryCount] = useState<number>(0);
-  const [pdfInstance, setPdfInstance] = useState<any>(null);
   
   const pdfPath = `/pdfs/${worksheetId}/${pageIndex}.pdf?v=${retryCount}`;
   
@@ -67,7 +66,6 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
   useEffect(() => {
     setLoading(true);
     setError(null);
-    setPdfInstance(null);
     
     if (worksheetId || pageIndex) {
       setRetryCount(0);
@@ -221,9 +219,8 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
     setError(null);
   };
 
-  const onDocumentLoadSuccess = ({ numPages, pdf }: { numPages: number; pdf: any }) => {
+  const onDocumentLoadSuccess = ({ numPages }: { numPages: number }) => {
     setNumPages(numPages);
-    setPdfInstance(pdf);
     setLoading(false);
   };
 
@@ -390,7 +387,7 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
           />
         </Document>
         
-        {isCurrentPageDrmProtected && !isTextMode && !loading && !error && pdfInstance && filteredRegions.map((region) => (
+        {isCurrentPageDrmProtected && !isTextMode && !loading && !error && filteredRegions.map((region) => (
           <div
             key={`clear-${region.id}`}
             className="worksheet-clear-region"
@@ -405,24 +402,28 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
               border: '1px solid rgba(0,0,0,0.1)',
             }}
           >
-            <div
-              style={{
-                position: 'absolute',
-                left: `-${region.x * scaleFactor}px`,
-                top: `-${region.y * scaleFactor}px`,
-                width: `${pdfDimensions.width * scaleFactor}px`,
-                height: `${pdfDimensions.height * scaleFactor}px`,
-              }}
+            <Document
+              file={pdfPath}
+              className="clear-document"
             >
-              <Page
-                pdf={pdfInstance}
-                pageNumber={1}
-                renderTextLayer={false}
-                renderAnnotationLayer={false}
-                width={window.innerWidth > 768 ? 600 : undefined}
-                className="clear-page"
-              />
-            </div>
+              <div
+                style={{
+                  position: 'absolute',
+                  left: `-${region.x * scaleFactor}px`,
+                  top: `-${region.y * scaleFactor}px`,
+                  width: `${pdfDimensions.width * scaleFactor}px`,
+                  height: `${pdfDimensions.height * scaleFactor}px`,
+                }}
+              >
+                <Page
+                  pageNumber={1}
+                  renderTextLayer={false}
+                  renderAnnotationLayer={false}
+                  width={window.innerWidth > 768 ? 600 : undefined}
+                  className="clear-page"
+                />
+              </div>
+            </Document>
           </div>
         ))}
         
@@ -505,12 +506,6 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
       {isTextMode && (
         <div className="text-mode-instructions">
           <p>Double-click anywhere to return to PDF view</p>
-        </div>
-      )}
-      
-      {isCurrentPageDrmProtected && !isTextMode && !loading && !error && (
-        <div className="drm-notice">
-          <p>This page has content protection enabled</p>
         </div>
       )}
     </div>
