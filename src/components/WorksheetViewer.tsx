@@ -265,15 +265,10 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
       setIsAudioPlaying(false);
     };
     
-    // Add a small delay before playing to prevent interruption
-    setTimeout(() => {
-      if (audioRef.current) {
-        audioRef.current.play().catch(err => {
-          console.error("Error playing audio:", err);
-          setIsAudioPlaying(false);
-        });
-      }
-    }, 50);
+    audioRef.current.play().catch(err => {
+      console.error("Error playing audio:", err);
+      setIsAudioPlaying(false);
+    });
   };
   
   const handleRegionClick = (region: RegionData) => {
@@ -493,7 +488,8 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
       {hasNextStep && isTextMode && (
         <Button 
           onClick={handleNextStep} 
-          className="next-button h-[48px] w-[48px] md:h-[56px] md:w-[56px] rounded-full bg-gradient-to-r from-blue-500 to-blue-700 hover:from-blue-600 hover:to-blue-800 text-white shadow-lg"
+          className="next-button"
+          variant="default"
         >
           <Sparkles className="!h-6 !w-6" />
         </Button>

@@ -17,7 +17,7 @@ const WorksheetPage: React.FC = () => {
         <h1 className="text-2xl font-bold text-red-500 mb-4">
           Missing worksheet information
         </h1>
-        <Button onClick={goBack} className="bg-blue-500 hover:bg-blue-600">
+        <Button onClick={goBack} className="bg-gradient-to-r from-blue-500 to-blue-700 hover:from-blue-600 hover:to-blue-800 text-white">
           Return to Scanner
         </Button>
       </div>
@@ -32,7 +32,7 @@ const WorksheetPage: React.FC = () => {
         <h1 className="text-2xl font-bold text-red-500 mb-4">
           Invalid page number
         </h1>
-        <Button onClick={goBack} className="bg-blue-500 hover:bg-blue-600">
+        <Button onClick={goBack} className="bg-gradient-to-r from-blue-500 to-blue-700 hover:from-blue-600 hover:to-blue-800 text-white">
           Return to Scanner
         </Button>
       </div>
@@ -40,8 +40,11 @@ const WorksheetPage: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-1">
-      <div className="bg-white rounded-lg shadow-md">
+    <div className="min-h-screen bg-gray-50 p-4">
+      <div className="bg-white rounded-lg shadow-md p-4">
+        <h1 className="text-xl font-bold mb-4 text-blue-600">
+          Worksheet: {id} - Page {pageIndex}
+        </h1>
         <WorksheetViewer worksheetId={id} pageIndex={pageIndex} />
       </div>
     </div>
