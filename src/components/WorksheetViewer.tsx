@@ -415,6 +415,7 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
               }}
             >
               <Page
+                pdf={pdfInstance}
                 pageNumber={1}
                 renderTextLayer={false}
                 renderAnnotationLayer={false}
