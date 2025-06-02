@@ -4,7 +4,7 @@ import "../styles/Worksheet.css";
 import { toast } from "@/components/ui/use-toast";
 import { Button } from "@/components/ui/button";
 import { RegionData, WorksheetMetadata } from "@/types/worksheet";
-import { ChevronLeft, Sparkles } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 // Set up the worker for react-pdf
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.js`;
@@ -20,34 +20,26 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
   const [error, setError] = useState<string | null>(null);
   const [retryCount, setRetryCount] = useState<number>(0);
   
-  // PDF Path with query parameter to prevent caching issues
   const pdfPath = `/pdfs/${worksheetId}/${pageIndex}.pdf?v=${retryCount}`;
   
-  // Metadata and region related states
   const [metadata, setMetadata] = useState<WorksheetMetadata | null>(null);
   const [filteredRegions, setFilteredRegions] = useState<RegionData[]>([]);
   const [pdfDimensions, setPdfDimensions] = useState({ width: 0, height: 0 });
   const [scaleFactor, setScaleFactor] = useState(1);
   const [pdfPosition, setPdfPosition] = useState({ top: 0, left: 0 });
   
-  // State for active region and step index
   const [activeRegion, setActiveRegion] = useState<RegionData | null>(null);
   const [currentStepIndex, setCurrentStepIndex] = useState<number>(0);
   
-  // State for UI mode (text mode vs PDF mode)
   const [isTextMode, setIsTextMode] = useState<boolean>(false);
   
-  // State for displayed messages in chat-style
   const [displayedMessages, setDisplayedMessages] = useState<string[]>([]);
   
-  // State for DRM protection
   const [isCurrentPageDrmProtected, setIsCurrentPageDrmProtected] = useState<boolean>(false);
   
-  // State for video display
   const [showVideo, setShowVideo] = useState<boolean>(false);
   const [isAudioPlaying, setIsAudioPlaying] = useState<boolean>(false);
   
-  // References
   const pdfContainerRef = useRef<HTMLDivElement>(null);
   const pdfRef = useRef<HTMLCanvasElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -446,13 +438,13 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
             autoPlay
             playsInline
             preload="auto"
-            onContextMenu={handleVideoContextMenu}
           />
           
           <div 
             className="worksheet-text-display"
             ref={textDisplayRef}
           >
+            <h3 className="text-lg font-semibold mb-2">{activeRegion.name}</h3>
             <div className="text-content chat-messages">
               {displayedMessages.map((message, index) => (
                 <div key={index} className="chat-message">
@@ -468,10 +460,9 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
         <Button 
           onClick={handleNextStep} 
           className="next-button"
-          size="icon"
           variant="default"
         >
-          <Sparkles className="h-5 w-5" />
+          <ChevronRight className="h-6 w-6" />
         </Button>
       )}
       

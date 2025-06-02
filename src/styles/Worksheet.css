@@ -300,8 +300,8 @@
   transform: translateX(-50%);
   z-index: 70;
   transition: all 0.3s ease;
-  width: 56px;
-  height: 56px;
+  width: 64px;
+  height: 64px;
   padding: 0;
   display: flex;
   align-items: center;
@@ -327,7 +327,7 @@
 @media (max-width: 768px) {
   .next-button {
     bottom: 24px;
-    width: 48px;
-    height: 48px;
+    width: 56px;
+    height: 56px;
   }
 }
