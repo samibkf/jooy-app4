@@ -19,7 +19,7 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
   const [error, setError] = useState<string | null>(null);
   const [retryCount, setRetryCount] = useState<number>(0);
   
-  const pdfPath = `/pdfs/${worksheetId}/${pageIndex}.pdf?v=${retryCount}`;
+  const pdfPath = `/pdfs/${worksheetId}.pdf?v=${retryCount}`;
   
   const [metadata, setMetadata] = useState<WorksheetMetadata | null>(null);
   const [filteredRegions, setFilteredRegions] = useState<RegionData[]>([]);
@@ -378,7 +378,7 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
           loading={null}
         >
           <Page
-            pageNumber={1}
+            pageNumber={pageIndex}
             renderTextLayer={false}
             renderAnnotationLayer={false}
             className={`worksheet-page ${isCurrentPageDrmProtected ? 'blurred' : ''}`}
@@ -416,7 +416,7 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
                 }}
               >
                 <Page
-                  pageNumber={1}
+                  pageNumber={pageIndex}
                   renderTextLayer={false}
                   renderAnnotationLayer={false}
                   width={window.innerWidth > 768 ? 600 : undefined}
@@ -498,7 +498,7 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
       {!isTextMode && numPages && numPages > 0 && !error && !loading && (
         <div className="worksheet-info">
           <p className="text-sm text-gray-500 mt-2">
-            Page 1 of {numPages}
+            Page {pageIndex} of {numPages}
           </p>
         </div>
       )}
