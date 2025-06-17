@@ -16,33 +16,64 @@ export const useWorksheetData = (worksheetId: string) => {
         return response.json()
       }
 
-      // Use Supabase if configured
-      const { data: worksheet, error: worksheetError } = await supabase
-        .from('worksheets')
-        .select('*')
-        .eq('id', worksheetId)
-        .single()
+      try {
+        // Use Supabase if configured
+        const { data: worksheet, error: worksheetError } = await supabase
+          .from('worksheets')
+          .select('*')
+          .eq('id', worksheetId)
+          .single()
 
-      if (worksheetError) {
-        throw new Error(`Failed to fetch worksheet: ${worksheetError.message}`)
-      }
+        if (worksheetError) {
+          // If table doesn't exist, fall back to JSON
+          if (worksheetError.code === '42P01') {
+            console.log('Supabase tables not found, falling back to JSON')
+            const response = await fetch(`/data/${worksheetId}.json`)
+            if (!response.ok) {
+              throw new Error(`Failed to fetch worksheet data: ${response.status}`)
+            }
+            return response.json()
+          }
+          throw new Error(`Failed to fetch worksheet: ${worksheetError.message}`)
+        }
 
-      const { data: regions, error: regionsError } = await supabase
-        .from('regions')
-        .select('*')
-        .eq('worksheet_id', worksheetId)
-        .order('page', { ascending: true })
+        const { data: regions, error: regionsError } = await supabase
+          .from('regions')
+          .select('*')
+          .eq('worksheet_id', worksheetId)
+          .order('page', { ascending: true })
 
-      if (regionsError) {
-        throw new Error(`Failed to fetch regions: ${regionsError.message}`)
-      }
+        if (regionsError) {
+          // If table doesn't exist, fall back to JSON
+          if (regionsError.code === '42P01') {
+            console.log('Supabase tables not found, falling back to JSON')
+            const response = await fetch(`/data/${worksheetId}.json`)
+            if (!response.ok) {
+              throw new Error(`Failed to fetch worksheet data: ${response.status}`)
+            }
+            return response.json()
+          }
+          throw new Error(`Failed to fetch regions: ${regionsError.message}`)
+        }
 
-      return {
-        documentName: worksheet.document_name,
-        documentId: worksheet.document_id,
-        drmProtectedPages: worksheet.drm_protected_pages || [],
-        drmProtected: worksheet.drm_protected || false,
-        regions: regions || []
+        return {
+          documentName: worksheet.document_name,
+          documentId: worksheet.document_id,
+          drmProtectedPages: worksheet.drm_protected_pages || [],
+          drmProtected: worksheet.drm_protected || false,
+          regions: regions || []
+        }
+      } catch (error: any) {
+        // If any Supabase error occurs, fall back to JSON
+        if (error.message?.includes('relation') && error.message?.includes('does not exist')) {
+          console.log('Supabase tables not found, falling back to JSON')
+          const response = await fetch(`/data/${worksheetId}.json`)
+          if (!response.ok) {
+            throw new Error(`Failed to fetch worksheet data: ${response.status}`)
+          }
+          return response.json()
+        }
+        throw error
       }
     },
     enabled: !!worksheetId,
@@ -50,6 +81,10 @@ export const useWorksheetData = (worksheetId: string) => {
     retry: (failureCount, error) => {
       // Don't retry if it's a 404 or if Supabase is not configured
       if (error.message.includes('404') || !shouldUseSupabase()) {
+        return false
+      }
+      // Don't retry if tables don't exist - we'll fall back to JSON
+      if (error.message?.includes('relation') && error.message?.includes('does not exist')) {
         return false
       }
       return failureCount < 3
@@ -71,19 +106,43 @@ export const useRegionsByPage = (worksheetId: string, pageNumber: number) => {
         return data.regions?.filter((region: any) => region.page === pageNumber) || []
       }
 
-      // Use Supabase if configured
-      const { data, error } = await supabase
-        .from('regions')
-        .select('*')
-        .eq('worksheet_id', worksheetId)
-        .eq('page', pageNumber)
-        .order('created_at', { ascending: true })
+      try {
+        // Use Supabase if configured
+        const { data, error } = await supabase
+          .from('regions')
+          .select('*')
+          .eq('worksheet_id', worksheetId)
+          .eq('page', pageNumber)
+          .order('created_at', { ascending: true })
 
-      if (error) {
-        throw new Error(`Failed to fetch regions: ${error.message}`)
+        if (error) {
+          // If table doesn't exist, fall back to JSON
+          if (error.code === '42P01') {
+            console.log('Supabase tables not found, falling back to JSON')
+            const response = await fetch(`/data/${worksheetId}.json`)
+            if (!response.ok) {
+              throw new Error(`Failed to fetch worksheet data: ${response.status}`)
+            }
+            const data = await response.json()
+            return data.regions?.filter((region: any) => region.page === pageNumber) || []
+          }
+          throw new Error(`Failed to fetch regions: ${error.message}`)
+        }
+
+        return data || []
+      } catch (error: any) {
+        // If any Supabase error occurs, fall back to JSON
+        if (error.message?.includes('relation') && error.message?.includes('does not exist')) {
+          console.log('Supabase tables not found, falling back to JSON')
+          const response = await fetch(`/data/${worksheetId}.json`)
+          if (!response.ok) {
+            throw new Error(`Failed to fetch worksheet data: ${response.status}`)
+          }
+          const data = await response.json()
+          return data.regions?.filter((region: any) => region.page === pageNumber) || []
+        }
+        throw error
       }
-
-      return data || []
     },
     enabled: !!worksheetId && !!pageNumber,
     staleTime: 5 * 60 * 1000, // 5 minutes
