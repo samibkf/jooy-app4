@@ -11,6 +11,9 @@ const createMockClient = () => ({
     insert: () => Promise.resolve({ data: null, error: new Error('Supabase not configured') }),
     update: () => Promise.resolve({ data: null, error: new Error('Supabase not configured') }),
     delete: () => Promise.resolve({ data: null, error: new Error('Supabase not configured') }),
+    eq: function() { return this },
+    single: function() { return this },
+    order: function() { return this }
   }),
   auth: {
     getSession: () => Promise.resolve({ data: { session: null }, error: null }),
@@ -32,3 +35,5 @@ export const isSupabaseReady = isSupabaseConfigured
 
 // Helper function to check if we should use Supabase or fallback to JSON
 export const shouldUseSupabase = () => isSupabaseConfigured
+
+export type { Database }

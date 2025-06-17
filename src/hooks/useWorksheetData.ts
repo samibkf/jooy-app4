@@ -30,7 +30,7 @@ export const useWorksheetData = (worksheetId: string) => {
       const { data: regions, error: regionsError } = await supabase
         .from('regions')
         .select('*')
-        .eq('document_id', worksheetId)
+        .eq('worksheet_id', worksheetId)
         .order('page', { ascending: true })
 
       if (regionsError) {
@@ -39,8 +39,9 @@ export const useWorksheetData = (worksheetId: string) => {
 
       return {
         documentName: worksheet.document_name,
-        documentId: worksheet.id,
+        documentId: worksheet.document_id,
         drmProtectedPages: worksheet.drm_protected_pages || [],
+        drmProtected: worksheet.drm_protected || false,
         regions: regions || []
       }
     },
@@ -74,7 +75,7 @@ export const useRegionsByPage = (worksheetId: string, pageNumber: number) => {
       const { data, error } = await supabase
         .from('regions')
         .select('*')
-        .eq('document_id', worksheetId)
+        .eq('worksheet_id', worksheetId)
         .eq('page', pageNumber)
         .order('created_at', { ascending: true })
 
