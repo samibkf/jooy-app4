@@ -1,19 +1,22 @@
 import { useQuery } from '@tanstack/react-query'
-import { supabase } from '@/lib/supabase'
-import type { Database } from '@/lib/supabase'
-
-type Worksheet = Database['public']['Tables']['worksheets']['Row']
-type Region = Database['public']['Tables']['regions']['Row']
-
-export interface WorksheetWithRegions extends Worksheet {
-  regions: Region[]
-}
+import { supabase, shouldUseSupabase } from '@/lib/supabase'
+import type { WorksheetMetadata } from '@/types/worksheet'
 
 export const useWorksheetData = (worksheetId: string) => {
   return useQuery({
     queryKey: ['worksheet', worksheetId],
-    queryFn: async (): Promise<WorksheetWithRegions | null> => {
-      // First get the worksheet
+    queryFn: async (): Promise<WorksheetMetadata> => {
+      // If Supabase is not configured, fallback to JSON files
+      if (!shouldUseSupabase()) {
+        console.log('Supabase not configured, using JSON fallback')
+        const response = await fetch(`/data/${worksheetId}.json`)
+        if (!response.ok) {
+          throw new Error(`Failed to fetch worksheet data: ${response.status}`)
+        }
+        return response.json()
+      }
+
+      // Use Supabase if configured
       const { data: worksheet, error: worksheetError } = await supabase
         .from('worksheets')
         .select('*')
@@ -21,35 +24,31 @@ export const useWorksheetData = (worksheetId: string) => {
         .single()
 
       if (worksheetError) {
-        if (worksheetError.code === 'PGRST116') {
-          // No rows returned - worksheet not found
-          return null
-        }
-        throw worksheetError
+        throw new Error(`Failed to fetch worksheet: ${worksheetError.message}`)
       }
 
-      // Then get the regions for this worksheet
       const { data: regions, error: regionsError } = await supabase
         .from('regions')
         .select('*')
-        .eq('worksheet_id', worksheetId)
+        .eq('document_id', worksheetId)
         .order('page', { ascending: true })
-        .order('name', { ascending: true })
 
       if (regionsError) {
-        throw regionsError
+        throw new Error(`Failed to fetch regions: ${regionsError.message}`)
       }
 
       return {
-        ...worksheet,
+        documentName: worksheet.document_name,
+        documentId: worksheet.id,
+        drmProtectedPages: worksheet.drm_protected_pages || [],
         regions: regions || []
       }
     },
     enabled: !!worksheetId,
     staleTime: 5 * 60 * 1000, // 5 minutes
-    retry: (failureCount, error: any) => {
-      // Don't retry if worksheet not found
-      if (error?.code === 'PGRST116') {
+    retry: (failureCount, error) => {
+      // Don't retry if it's a 404 or if Supabase is not configured
+      if (error.message.includes('404') || !shouldUseSupabase()) {
         return false
       }
       return failureCount < 3
@@ -57,24 +56,35 @@ export const useWorksheetData = (worksheetId: string) => {
   })
 }
 
-export const useRegionsByPage = (worksheetId: string, page: number) => {
+export const useRegionsByPage = (worksheetId: string, pageNumber: number) => {
   return useQuery({
-    queryKey: ['regions', worksheetId, page],
-    queryFn: async (): Promise<Region[]> => {
+    queryKey: ['regions', worksheetId, pageNumber],
+    queryFn: async () => {
+      // If Supabase is not configured, fallback to JSON files
+      if (!shouldUseSupabase()) {
+        const response = await fetch(`/data/${worksheetId}.json`)
+        if (!response.ok) {
+          throw new Error(`Failed to fetch worksheet data: ${response.status}`)
+        }
+        const data = await response.json()
+        return data.regions?.filter((region: any) => region.page === pageNumber) || []
+      }
+
+      // Use Supabase if configured
       const { data, error } = await supabase
         .from('regions')
         .select('*')
-        .eq('worksheet_id', worksheetId)
-        .eq('page', page)
-        .order('name', { ascending: true })
+        .eq('document_id', worksheetId)
+        .eq('page', pageNumber)
+        .order('created_at', { ascending: true })
 
       if (error) {
-        throw error
+        throw new Error(`Failed to fetch regions: ${error.message}`)
       }
 
       return data || []
     },
-    enabled: !!worksheetId && !!page,
+    enabled: !!worksheetId && !!pageNumber,
     staleTime: 5 * 60 * 1000, // 5 minutes
   })
 }
