@@ -1,4 +1,3 @@
-
 export interface RegionData {
   id: string;
   document_id: string;
@@ -19,4 +18,5 @@ export interface WorksheetMetadata {
   documentId: string;
   regions: RegionData[];
   drmProtectedPages?: number[];
+  drmProtected?: boolean;
 }

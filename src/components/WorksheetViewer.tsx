@@ -3,10 +3,13 @@ import { Document, Page, pdfjs } from "react-pdf";
 import "../styles/Worksheet.css";
 import { toast } from "@/components/ui/use-toast";
 import { Button } from "@/components/ui/button";
-import { RegionData, WorksheetMetadata } from "@/types/worksheet";
 import { ChevronLeft, Sparkles } from "lucide-react";
+import { useWorksheetData, useRegionsByPage } from "@/hooks/useWorksheetData";
+import type { Database } from "@/lib/supabase";
 
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.js`;
+
+type Region = Database['public']['Tables']['regions']['Row'];
 
 interface WorksheetViewerProps {
   worksheetId: string;
@@ -21,13 +24,15 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
   
   const pdfPath = `/pdfs/${worksheetId}.pdf?v=${retryCount}`;
   
-  const [metadata, setMetadata] = useState<WorksheetMetadata | null>(null);
-  const [filteredRegions, setFilteredRegions] = useState<RegionData[]>([]);
+  // Use Supabase hooks
+  const { data: worksheetData, isLoading: worksheetLoading, error: worksheetError } = useWorksheetData(worksheetId);
+  const { data: regions = [], isLoading: regionsLoading } = useRegionsByPage(worksheetId, pageIndex);
+  
   const [pdfDimensions, setPdfDimensions] = useState({ width: 0, height: 0 });
   const [scaleFactor, setScaleFactor] = useState(1);
   const [pdfPosition, setPdfPosition] = useState({ top: 0, left: 0 });
   
-  const [activeRegion, setActiveRegion] = useState<RegionData | null>(null);
+  const [activeRegion, setActiveRegion] = useState<Region | null>(null);
   const [currentStepIndex, setCurrentStepIndex] = useState<number>(0);
   
   const [isTextMode, setIsTextMode] = useState<boolean>(false);
@@ -44,6 +49,27 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
   const audioRef = useRef<HTMLAudioElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const textDisplayRef = useRef<HTMLDivElement>(null);
+
+  // Check if current page is DRM protected
+  useEffect(() => {
+    if (worksheetData) {
+      const isDrmProtected = worksheetData.drm_protected || 
+        (worksheetData.drm_protected_pages && worksheetData.drm_protected_pages.includes(pageIndex));
+      setIsCurrentPageDrmProtected(isDrmProtected);
+    }
+  }, [worksheetData, pageIndex]);
+
+  // Handle worksheet loading errors
+  useEffect(() => {
+    if (worksheetError) {
+      console.error("Error loading worksheet:", worksheetError);
+      toast({
+        title: "Error",
+        description: "Failed to load worksheet data",
+        variant: "destructive"
+      });
+    }
+  }, [worksheetError]);
 
   const handleMessageClick = (index: number) => {
     if (!activeRegion) return;
@@ -88,39 +114,6 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
       videoRef.current.currentTime = 0;
     }
   }, [worksheetId, pageIndex, pdfPath]);
-  
-  useEffect(() => {
-    const fetchMetadata = async () => {
-      try {
-        const response = await fetch(`/data/${worksheetId}.json`);
-        if (!response.ok) {
-          throw new Error(`Failed to fetch metadata: ${response.status} ${response.statusText}`);
-        }
-        
-        const data = await response.json();
-        setMetadata(data);
-        
-        if (data.drmProtectedPages && Array.isArray(data.drmProtectedPages)) {
-          setIsCurrentPageDrmProtected(data.drmProtectedPages.includes(pageIndex));
-        } else {
-          setIsCurrentPageDrmProtected(false);
-        }
-        
-        if (data && data.regions) {
-          const regions = data.regions.filter(
-            (region: RegionData) => region.page === pageIndex
-          );
-          setFilteredRegions(regions);
-        }
-      } catch (err) {
-        console.error("Error loading metadata:", err);
-      }
-    };
-    
-    if (worksheetId) {
-      fetchMetadata();
-    }
-  }, [worksheetId, pageIndex]);
   
   useEffect(() => {
     const calculatePdfPositionAndScale = () => {
@@ -271,7 +264,7 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
     });
   };
   
-  const handleRegionClick = (region: RegionData) => {
+  const handleRegionClick = (region: Region) => {
     setCurrentStepIndex(0);
     
     if (region.description && region.description.length > 0) {
@@ -352,6 +345,31 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
   
   const hasNextStep = activeRegion?.description && currentStepIndex < activeRegion.description.length - 1;
 
+  // Show loading state while fetching data
+  if (worksheetLoading || regionsLoading) {
+    return (
+      <div className="worksheet-container">
+        <div className="worksheet-loading">
+          <p>Loading worksheet...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error if worksheet not found
+  if (!worksheetData) {
+    return (
+      <div className="worksheet-container">
+        <div className="worksheet-error">
+          <p>Worksheet not found</p>
+          <Button onClick={() => window.location.href = '/'}>
+            Return to Scanner
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div 
       className={`worksheet-container ${isTextMode ? 'text-mode' : ''}`} 
@@ -387,7 +405,7 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
           />
         </Document>
         
-        {isCurrentPageDrmProtected && !isTextMode && !loading && !error && filteredRegions.map((region) => (
+        {isCurrentPageDrmProtected && !isTextMode && !loading && !error && regions.map((region) => (
           <div
             key={`clear-${region.id}`}
             className="worksheet-clear-region"
@@ -427,7 +445,7 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
           </div>
         ))}
         
-        {!loading && !error && filteredRegions.map((region) => (
+        {!loading && !error && regions.map((region) => (
           <div
             key={region.id}
             className="worksheet-region"
