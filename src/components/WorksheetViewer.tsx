@@ -34,7 +34,6 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
   
   const [isCurrentPageDrmProtected, setIsCurrentPageDrmProtected] = useState<boolean>(false);
   
-  const [showVideo, setShowVideo] = useState<boolean>(false);
   const [isAudioPlaying, setIsAudioPlaying] = useState<boolean>(false);
   const [audioAvailable, setAudioAvailable] = useState<boolean>(true);
   
@@ -98,7 +97,6 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
     setCurrentStepIndex(0);
     setDisplayedMessages([]);
     setIsTextMode(false);
-    setShowVideo(false);
     setIsAudioPlaying(false);
     setAudioAvailable(true);
     
@@ -266,15 +264,6 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
       console.warn(`Audio file not found: ${audioPath}`);
       setIsAudioPlaying(false);
       setAudioAvailable(false);
-      
-      // Show user-friendly message only once per worksheet
-      if (audioAvailable) {
-        toast({
-          title: "Audio Not Available",
-          description: `Audio content is not available for worksheet ${worksheetId}. You can still view the text content.`,
-          variant: "default"
-        });
-      }
     };
     
     audioRef.current.play().catch(err => {
@@ -289,9 +278,8 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
     
     if (region.description && region.description.length > 0) {
       setDisplayedMessages([region.description[0]]);
-      setShowVideo(true);
       
-      if (videoRef.current) {
+      if (videoRef.current && audioAvailable) {
         videoRef.current.currentTime = 0;
         videoRef.current.play().catch(err => console.error("Error playing video:", err));
       }
@@ -304,7 +292,6 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
       }
     } else {
       setDisplayedMessages([]);
-      setShowVideo(false);
     }
     
     setActiveRegion(region);
@@ -351,7 +338,7 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
         
         setIsAudioPlaying(false);
       } else {
-        if (videoRef.current && showVideo) {
+        if (videoRef.current && audioAvailable) {
           videoRef.current.currentTime = 0;
           videoRef.current.play().catch(err => console.error("Error playing video:", err));
         }
@@ -506,16 +493,18 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
       
       {activeRegion && (
         <div className={`worksheet-text-display-container ${isTextMode ? 'active' : 'hidden'}`}>
-          <video 
-            ref={videoRef}
-            className={`video-element ${showVideo ? '' : 'hidden'}`}
-            src="/video/default.mp4"
-            muted
-            autoPlay
-            playsInline
-            preload="auto"
-            onContextMenu={handleVideoContextMenu}
-          />
+          {isTextMode && audioAvailable && (
+            <video 
+              ref={videoRef}
+              className="video-element"
+              src="/video/default.mp4"
+              muted
+              autoPlay
+              playsInline
+              preload="auto"
+              onContextMenu={handleVideoContextMenu}
+            />
+          )}
           
           <div 
             className="worksheet-text-display"
@@ -539,14 +528,6 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
                   <p>{message}</p>
                 </div>
               ))}
-              
-              {!audioAvailable && displayedMessages.length > 0 && (
-                <div className="audio-unavailable-notice">
-                  <p className="text-sm text-gray-500 italic">
-                    Note: Audio content is not available for this worksheet. Text content is displayed above.
-                  </p>
-                </div>
-              )}
             </div>
           </div>
         </div>
