@@ -4,10 +4,12 @@ import "../styles/Worksheet.css";
 import { toast } from "@/components/ui/use-toast";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, Sparkles } from "lucide-react";
-import { supabase } from '../lib/supabaseClient';
-import type { WorksheetMetadata, RegionData } from "@/types/worksheet";
+import { useWorksheetData, useRegionsByPage } from "@/hooks/useWorksheetData";
+import type { Database } from "@/lib/supabase";
 
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.js`;
+
+type Region = Database['public']['Tables']['regions']['Row'];
 
 interface WorksheetViewerProps {
   worksheetId: string;
@@ -16,16 +18,21 @@ interface WorksheetViewerProps {
 
 const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageIndex }) => {
   const [numPages, setNumPages] = useState<number | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  const [worksheetData, setWorksheetData] = useState<WorksheetMetadata | null>(null);
-  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState<number>(0);
+  
+  const pdfPath = `/pdfs/${worksheetId}.pdf?v=${retryCount}`;
+  
+  // Use Supabase hooks
+  const { data: worksheetData, isLoading: worksheetLoading, error: worksheetError } = useWorksheetData(worksheetId);
+  const { data: rawRegions = [], isLoading: regionsLoading } = useRegionsByPage(worksheetId, pageIndex);
   
   const [pdfDimensions, setPdfDimensions] = useState({ width: 0, height: 0 });
   const [scaleFactor, setScaleFactor] = useState(1);
   const [pdfPosition, setPdfPosition] = useState({ top: 0, left: 0 });
   
-  const [activeRegion, setActiveRegion] = useState<RegionData | null>(null);
+  const [activeRegion, setActiveRegion] = useState<Region | null>(null);
   const [currentStepIndex, setCurrentStepIndex] = useState<number>(0);
   
   const [isTextMode, setIsTextMode] = useState<boolean>(false);
@@ -34,8 +41,8 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
   
   const [isCurrentPageDrmProtected, setIsCurrentPageDrmProtected] = useState<boolean>(false);
   
+  const [showVideo, setShowVideo] = useState<boolean>(false);
   const [isAudioPlaying, setIsAudioPlaying] = useState<boolean>(false);
-  const [audioAvailable, setAudioAvailable] = useState<boolean>(true);
   
   const pdfContainerRef = useRef<HTMLDivElement>(null);
   const pdfRef = useRef<HTMLCanvasElement>(null);
@@ -43,53 +50,31 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
   const videoRef = useRef<HTMLVideoElement>(null);
   const textDisplayRef = useRef<HTMLDivElement>(null);
 
-  // Filter regions for current page and ensure description is always an array
+  // Process regions to ensure description is always an array of individual paragraphs
   const regions = useMemo(() => {
-    if (!worksheetData?.regions) return [];
-    return worksheetData.regions
-      .filter((region: RegionData) => region.page === pageIndex)
-      .map((region: RegionData) => ({
-        ...region,
-        description: Array.isArray(region.description) 
-          ? region.description 
-          : typeof region.description === 'string' 
-            ? [region.description]
-            : []
-      }));
-  }, [worksheetData, pageIndex]);
-
-  // Main data fetching effect
-  useEffect(() => {
-    const fetchWorksheet = async () => {
-      if (!worksheetId) return;
+    return rawRegions.map((region: Region) => {
+      let processedDescription: string[] = [];
       
-      setIsLoading(true);
-      setError(null);
-      setWorksheetData(null);
-      setPdfUrl(null);
-
-      try {
-        const { data, error: functionError } = await supabase.functions.invoke('get-worksheet-data', {
-          body: { worksheetId },
+      if (Array.isArray(region.description)) {
+        // If it's already an array, process each element
+        processedDescription = region.description.flatMap((desc: string) => {
+          if (typeof desc === 'string') {
+            // Split by newlines and filter out empty strings
+            return desc.split('\n').filter(line => line.trim().length > 0);
+          }
+          return [];
         });
-
-        if (functionError) { 
-          throw functionError; 
-        }
-
-        setWorksheetData(data.meta);
-        setPdfUrl(data.pdfUrl);
-
-      } catch (e: any) {
-        console.error("Failed to fetch worksheet:", e);
-        setError("Failed to load the interactive worksheet. Please try again.");
-      } finally {
-        setIsLoading(false);
+      } else if (typeof region.description === 'string') {
+        // If it's a string, split by newlines
+        processedDescription = region.description.split('\n').filter(line => line.trim().length > 0);
       }
-    };
-
-    fetchWorksheet();
-  }, [worksheetId, pageIndex]);
+      
+      return {
+        ...region,
+        description: processedDescription
+      };
+    });
+  }, [rawRegions]);
 
   // Check if current page is DRM protected
   useEffect(() => {
@@ -100,28 +85,20 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
     }
   }, [worksheetData, pageIndex]);
 
-  // Reset component state when worksheet or page changes
+  // Handle worksheet loading errors
   useEffect(() => {
-    setActiveRegion(null);
-    setCurrentStepIndex(0);
-    setDisplayedMessages([]);
-    setIsTextMode(false);
-    setIsAudioPlaying(false);
-    setAudioAvailable(true);
-    
-    if (audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current.currentTime = 0;
+    if (worksheetError) {
+      console.error("Error loading worksheet:", worksheetError);
+      toast({
+        title: "Error",
+        description: "Failed to load worksheet data",
+        variant: "destructive"
+      });
     }
-    
-    if (videoRef.current) {
-      videoRef.current.pause();
-      videoRef.current.currentTime = 0;
-    }
-  }, [worksheetId, pageIndex]);
+  }, [worksheetError]);
 
   const handleMessageClick = (index: number) => {
-    if (!activeRegion || !audioAvailable) return;
+    if (!activeRegion) return;
     
     if (audioRef.current) {
       audioRef.current.pause();
@@ -137,6 +114,32 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
       }, 200);
     }
   };
+
+  useEffect(() => {
+    setLoading(true);
+    setError(null);
+    
+    if (worksheetId || pageIndex) {
+      setRetryCount(0);
+    }
+
+    setActiveRegion(null);
+    setCurrentStepIndex(0);
+    setDisplayedMessages([]);
+    setIsTextMode(false);
+    setShowVideo(false);
+    setIsAudioPlaying(false);
+    
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+    }
+    
+    if (videoRef.current) {
+      videoRef.current.pause();
+      videoRef.current.currentTime = 0;
+    }
+  }, [worksheetId, pageIndex, pdfPath]);
   
   useEffect(() => {
     const calculatePdfPositionAndScale = () => {
@@ -229,14 +232,21 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
     };
   }, [videoRef.current, audioRef.current, isAudioPlaying]);
 
+  const handleRetry = () => {
+    setRetryCount(prev => prev + 1);
+    setLoading(true);
+    setError(null);
+  };
+
   const onDocumentLoadSuccess = ({ numPages }: { numPages: number }) => {
     setNumPages(numPages);
+    setLoading(false);
   };
 
   const onDocumentLoadError = (err: Error) => {
     console.error("Error loading PDF:", err);
     setError("PDF not found or unable to load");
-    setIsLoading(false);
+    setLoading(false);
   };
   
   const onPageLoadSuccess = (page: any) => {
@@ -270,37 +280,34 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
     audioRef.current.src = audioPath;
     
     audioRef.current.onerror = () => {
-      console.warn(`Audio file not found: ${audioPath}`);
+      console.error(`Failed to load audio: ${audioPath}`);
       setIsAudioPlaying(false);
-      setAudioAvailable(false);
     };
     
     audioRef.current.play().catch(err => {
-      console.warn("Error playing audio:", err);
+      console.error("Error playing audio:", err);
       setIsAudioPlaying(false);
-      setAudioAvailable(false);
     });
   };
   
-  const handleRegionClick = (region: RegionData) => {
+  const handleRegionClick = (region: Region) => {
     setCurrentStepIndex(0);
     
     if (region.description && region.description.length > 0) {
       setDisplayedMessages([region.description[0]]);
+      setShowVideo(true);
       
-      if (videoRef.current && audioAvailable) {
+      if (videoRef.current) {
         videoRef.current.currentTime = 0;
         videoRef.current.play().catch(err => console.error("Error playing video:", err));
       }
       
-      // Only try to play audio if it's available
-      if (audioAvailable) {
-        setTimeout(() => {
-          playAudioSegment(region.name, 0);
-        }, 500);
-      }
+      setTimeout(() => {
+        playAudioSegment(region.name, 0);
+      }, 500);
     } else {
       setDisplayedMessages([]);
+      setShowVideo(false);
     }
     
     setActiveRegion(region);
@@ -321,12 +328,9 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
         activeRegion.description[nextStepIndex]
       ]);
       
-      // Only try to play audio if it's available
-      if (audioAvailable) {
-        setTimeout(() => {
-          playAudioSegment(activeRegion.name, nextStepIndex);
-        }, 500);
-      }
+      setTimeout(() => {
+        playAudioSegment(activeRegion.name, nextStepIndex);
+      }, 500);
     }
   };
   
@@ -347,13 +351,12 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
         
         setIsAudioPlaying(false);
       } else {
-        if (videoRef.current && audioAvailable) {
+        if (videoRef.current && showVideo) {
           videoRef.current.currentTime = 0;
           videoRef.current.play().catch(err => console.error("Error playing video:", err));
         }
         
-        // Only try to play audio if it's available
-        if (activeRegion && audioAvailable) {
+        if (activeRegion) {
           setTimeout(() => {
             playAudioSegment(activeRegion.name, currentStepIndex);
           }, 500);
@@ -369,7 +372,7 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
   const hasNextStep = activeRegion?.description && currentStepIndex < activeRegion.description.length - 1;
 
   // Show loading state while fetching data
-  if (isLoading) {
+  if (worksheetLoading || regionsLoading) {
     return (
       <div className="worksheet-container">
         <div className="worksheet-loading">
@@ -380,21 +383,7 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
   }
 
   // Show error if worksheet not found
-  if (error) {
-    return (
-      <div className="worksheet-container">
-        <div className="worksheet-error">
-          <p>{error}</p>
-          <Button onClick={() => window.location.href = '/'}>
-            Return to Scanner
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
-  // Show error if no data available
-  if (!worksheetData || !pdfUrl) {
+  if (!worksheetData) {
     return (
       <div className="worksheet-container">
         <div className="worksheet-error">
@@ -427,7 +416,7 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
       
       <div className={`worksheet-pdf-container ${isTextMode ? 'hidden' : ''} ${isCurrentPageDrmProtected ? 'drm-active' : ''}`}>
         <Document
-          file={pdfUrl}
+          file={pdfPath}
           onLoadSuccess={onDocumentLoadSuccess}
           onLoadError={onDocumentLoadError}
           loading={null}
@@ -442,7 +431,7 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
           />
         </Document>
         
-        {isCurrentPageDrmProtected && !isTextMode && regions.map((region) => (
+        {isCurrentPageDrmProtected && !isTextMode && !loading && !error && regions.map((region) => (
           <div
             key={`clear-${region.id}`}
             className="worksheet-clear-region"
@@ -458,7 +447,7 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
             }}
           >
             <Document
-              file={pdfUrl}
+              file={pdfPath}
               className="clear-document"
             >
               <div
@@ -482,7 +471,7 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
           </div>
         ))}
         
-        {regions.map((region) => (
+        {!loading && !error && regions.map((region) => (
           <div
             key={region.id}
             className="worksheet-region"
@@ -502,18 +491,16 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
       
       {activeRegion && (
         <div className={`worksheet-text-display-container ${isTextMode ? 'active' : 'hidden'}`}>
-          {isTextMode && audioAvailable && (
-            <video 
-              ref={videoRef}
-              className="video-element"
-              src="/video/default.mp4"
-              muted
-              autoPlay
-              playsInline
-              preload="auto"
-              onContextMenu={handleVideoContextMenu}
-            />
-          )}
+          <video 
+            ref={videoRef}
+            className={`video-element ${showVideo ? '' : 'hidden'}`}
+            src="/video/default.mp4"
+            muted
+            autoPlay
+            playsInline
+            preload="auto"
+            onContextMenu={handleVideoContextMenu}
+          />
           
           <div 
             className="worksheet-text-display"
@@ -552,7 +539,7 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
         </Button>
       )}
       
-      {numPages && numPages > 0 && (
+      {!isTextMode && numPages && numPages > 0 && !error && !loading && (
         <div className="worksheet-info">
           <p className="text-sm text-gray-500 mt-2">
             Page {pageIndex} of {numPages}
@@ -560,7 +547,7 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
         </div>
       )}
       
-      {isCurrentPageDrmProtected && !isTextMode && (
+      {isCurrentPageDrmProtected && !isTextMode && !loading && !error && (
         <div className="drm-notice">
           <p>This page has content protection enabled</p>
         </div>
