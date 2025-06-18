@@ -1,15 +1,13 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { Document, Page, pdfjs } from "react-pdf";
 import "../styles/Worksheet.css";
 import { toast } from "@/components/ui/use-toast";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, Sparkles } from "lucide-react";
-import { useWorksheetData, useRegionsByPage } from "@/hooks/useWorksheetData";
-import type { Database } from "@/lib/supabase";
+import { supabase } from '../lib/supabaseClient';
+import type { WorksheetMetadata, RegionData } from "@/types/worksheet";
 
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.js`;
-
-type Region = Database['public']['Tables']['regions']['Row'];
 
 interface WorksheetViewerProps {
   worksheetId: string;
@@ -18,21 +16,16 @@ interface WorksheetViewerProps {
 
 const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageIndex }) => {
   const [numPages, setNumPages] = useState<number | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  const [retryCount, setRetryCount] = useState<number>(0);
-  
-  const pdfPath = `/pdfs/${worksheetId}.pdf?v=${retryCount}`;
-  
-  // Use Supabase hooks
-  const { data: worksheetData, isLoading: worksheetLoading, error: worksheetError } = useWorksheetData(worksheetId);
-  const { data: regions = [], isLoading: regionsLoading } = useRegionsByPage(worksheetId, pageIndex);
+  const [worksheetData, setWorksheetData] = useState<WorksheetMetadata | null>(null);
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   
   const [pdfDimensions, setPdfDimensions] = useState({ width: 0, height: 0 });
   const [scaleFactor, setScaleFactor] = useState(1);
   const [pdfPosition, setPdfPosition] = useState({ top: 0, left: 0 });
   
-  const [activeRegion, setActiveRegion] = useState<Region | null>(null);
+  const [activeRegion, setActiveRegion] = useState<RegionData | null>(null);
   const [currentStepIndex, setCurrentStepIndex] = useState<number>(0);
   
   const [isTextMode, setIsTextMode] = useState<boolean>(false);
@@ -50,26 +43,73 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
   const videoRef = useRef<HTMLVideoElement>(null);
   const textDisplayRef = useRef<HTMLDivElement>(null);
 
+  // Filter regions for current page
+  const regions = useMemo(() => {
+    if (!worksheetData?.regions) return [];
+    return worksheetData.regions.filter((region: RegionData) => region.page === pageIndex);
+  }, [worksheetData, pageIndex]);
+
+  // Main data fetching effect
+  useEffect(() => {
+    const fetchWorksheet = async () => {
+      if (!worksheetId) return;
+      
+      setIsLoading(true);
+      setError(null);
+      setWorksheetData(null);
+      setPdfUrl(null);
+
+      try {
+        const { data, error: functionError } = await supabase.functions.invoke('get-worksheet-data', {
+          body: { worksheetId },
+        });
+
+        if (functionError) { 
+          throw functionError; 
+        }
+
+        setWorksheetData(data.meta);
+        setPdfUrl(data.pdfUrl);
+
+      } catch (e: any) {
+        console.error("Failed to fetch worksheet:", e);
+        setError("Failed to load the interactive worksheet. Please try again.");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchWorksheet();
+  }, [worksheetId, pageIndex]);
+
   // Check if current page is DRM protected
   useEffect(() => {
     if (worksheetData) {
-      const isDrmProtected = worksheetData.drm_protected || 
-        (worksheetData.drm_protected_pages && worksheetData.drm_protected_pages.includes(pageIndex));
+      const isDrmProtected = worksheetData.drmProtected || 
+        (worksheetData.drmProtectedPages && worksheetData.drmProtectedPages.includes(pageIndex));
       setIsCurrentPageDrmProtected(isDrmProtected);
     }
   }, [worksheetData, pageIndex]);
 
-  // Handle worksheet loading errors
+  // Reset component state when worksheet or page changes
   useEffect(() => {
-    if (worksheetError) {
-      console.error("Error loading worksheet:", worksheetError);
-      toast({
-        title: "Error",
-        description: "Failed to load worksheet data",
-        variant: "destructive"
-      });
+    setActiveRegion(null);
+    setCurrentStepIndex(0);
+    setDisplayedMessages([]);
+    setIsTextMode(false);
+    setShowVideo(false);
+    setIsAudioPlaying(false);
+    
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
     }
-  }, [worksheetError]);
+    
+    if (videoRef.current) {
+      videoRef.current.pause();
+      videoRef.current.currentTime = 0;
+    }
+  }, [worksheetId, pageIndex]);
 
   const handleMessageClick = (index: number) => {
     if (!activeRegion) return;
@@ -88,32 +128,6 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
       }, 200);
     }
   };
-
-  useEffect(() => {
-    setLoading(true);
-    setError(null);
-    
-    if (worksheetId || pageIndex) {
-      setRetryCount(0);
-    }
-
-    setActiveRegion(null);
-    setCurrentStepIndex(0);
-    setDisplayedMessages([]);
-    setIsTextMode(false);
-    setShowVideo(false);
-    setIsAudioPlaying(false);
-    
-    if (audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current.currentTime = 0;
-    }
-    
-    if (videoRef.current) {
-      videoRef.current.pause();
-      videoRef.current.currentTime = 0;
-    }
-  }, [worksheetId, pageIndex, pdfPath]);
   
   useEffect(() => {
     const calculatePdfPositionAndScale = () => {
@@ -206,21 +220,14 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
     };
   }, [videoRef.current, audioRef.current, isAudioPlaying]);
 
-  const handleRetry = () => {
-    setRetryCount(prev => prev + 1);
-    setLoading(true);
-    setError(null);
-  };
-
   const onDocumentLoadSuccess = ({ numPages }: { numPages: number }) => {
     setNumPages(numPages);
-    setLoading(false);
   };
 
   const onDocumentLoadError = (err: Error) => {
     console.error("Error loading PDF:", err);
     setError("PDF not found or unable to load");
-    setLoading(false);
+    setIsLoading(false);
   };
   
   const onPageLoadSuccess = (page: any) => {
@@ -264,7 +271,7 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
     });
   };
   
-  const handleRegionClick = (region: Region) => {
+  const handleRegionClick = (region: RegionData) => {
     setCurrentStepIndex(0);
     
     if (region.description && region.description.length > 0) {
@@ -346,7 +353,7 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
   const hasNextStep = activeRegion?.description && currentStepIndex < activeRegion.description.length - 1;
 
   // Show loading state while fetching data
-  if (worksheetLoading || regionsLoading) {
+  if (isLoading) {
     return (
       <div className="worksheet-container">
         <div className="worksheet-loading">
@@ -357,7 +364,21 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
   }
 
   // Show error if worksheet not found
-  if (!worksheetData) {
+  if (error) {
+    return (
+      <div className="worksheet-container">
+        <div className="worksheet-error">
+          <p>{error}</p>
+          <Button onClick={() => window.location.href = '/'}>
+            Return to Scanner
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error if no data available
+  if (!worksheetData || !pdfUrl) {
     return (
       <div className="worksheet-container">
         <div className="worksheet-error">
@@ -390,7 +411,7 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
       
       <div className={`worksheet-pdf-container ${isTextMode ? 'hidden' : ''} ${isCurrentPageDrmProtected ? 'drm-active' : ''}`}>
         <Document
-          file={pdfPath}
+          file={pdfUrl}
           onLoadSuccess={onDocumentLoadSuccess}
           onLoadError={onDocumentLoadError}
           loading={null}
@@ -405,7 +426,7 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
           />
         </Document>
         
-        {isCurrentPageDrmProtected && !isTextMode && !loading && !error && regions.map((region) => (
+        {isCurrentPageDrmProtected && !isTextMode && regions.map((region) => (
           <div
             key={`clear-${region.id}`}
             className="worksheet-clear-region"
@@ -421,7 +442,7 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
             }}
           >
             <Document
-              file={pdfPath}
+              file={pdfUrl}
               className="clear-document"
             >
               <div
@@ -445,7 +466,7 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
           </div>
         ))}
         
-        {!loading && !error && regions.map((region) => (
+        {regions.map((region) => (
           <div
             key={region.id}
             className="worksheet-region"
@@ -513,7 +534,7 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
         </Button>
       )}
       
-      {!isTextMode && numPages && numPages > 0 && !error && !loading && (
+      {numPages && numPages > 0 && (
         <div className="worksheet-info">
           <p className="text-sm text-gray-500 mt-2">
             Page {pageIndex} of {numPages}
@@ -521,7 +542,7 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
         </div>
       )}
       
-      {isCurrentPageDrmProtected && !isTextMode && !loading && !error && (
+      {isCurrentPageDrmProtected && !isTextMode && (
         <div className="drm-notice">
           <p>This page has content protection enabled</p>
         </div>
