@@ -4,7 +4,7 @@ import "../styles/Worksheet.css";
 import { toast } from "@/components/ui/use-toast";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, Sparkles } from "lucide-react";
-import { supabase } from '../lib/supabaseClient';
+import { supabase, shouldUseSupabase } from '../lib/supabase';
 import type { WorksheetMetadata, RegionData } from "@/types/worksheet";
 
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.js`;
@@ -94,97 +94,126 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
       setPdfData(null);
 
       try {
-        // First, try to get worksheet metadata and encrypted PDF
-        const { data, error: functionError } = await supabase.functions.invoke('get-encrypted-worksheet', {
-          body: { worksheetId, userId: 'anonymous' }, // Using anonymous for now
-        });
-
-        if (functionError) {
-          console.warn("Secure endpoint failed, falling back to existing method:", functionError);
-          
-          // Check if it's a configuration error
-          if (functionError.message?.includes('Server configuration error') || 
-              functionError.message?.includes('PDF_ENCRYPTION_KEY')) {
-            console.warn("PDF encryption key not configured in Supabase. Using fallback method.");
-            toast({
-              title: "Configuration Notice",
-              description: "PDF encryption is not configured. Using fallback method.",
-              variant: "default",
-            });
-          }
-          
-          // Fallback to the existing method
-          const { data: fallbackData, error: fallbackError } = await supabase.functions.invoke('get-worksheet-data', {
-            body: { worksheetId },
-          });
-
-          if (fallbackError) {
-            console.error("Fallback method also failed:", fallbackError);
-            throw new Error(`Failed to load worksheet: ${fallbackError.message || 'Unknown error'}`);
-          }
-
-          if (!fallbackData) {
-            throw new Error('No worksheet data received from fallback method');
-          }
-
-          setWorksheetData(fallbackData.meta);
-          
-          // For fallback, we'll use the existing PDF URL method
-          if (fallbackData.pdfUrl) {
-            const pdfResponse = await fetch(fallbackData.pdfUrl);
-            if (!pdfResponse.ok) {
-              throw new Error(`Failed to fetch PDF: ${pdfResponse.status} ${pdfResponse.statusText}`);
-            }
-            const pdfArrayBuffer = await pdfResponse.arrayBuffer();
-            setPdfData(pdfArrayBuffer);
-          } else {
-            throw new Error('No PDF URL provided in fallback data');
-          }
-          
-          return;
-        }
-
-        if (!data) {
-          throw new Error('No data received from secure endpoint');
-        }
-
-        // If we have encrypted data, decrypt it
-        if (data.encryptedPdf && data.iv) {
-          const key = import.meta.env.VITE_PDF_ENCRYPTION_KEY;
-          if (!key) {
-            throw new Error("Encryption key not found in environment.");
-          }
-
+        if (shouldUseSupabase()) {
+          // Try Supabase first
           try {
-            const cryptoKey = await crypto.subtle.importKey(
-              'raw', 
-              new TextEncoder().encode(key), 
-              { name: 'AES-GCM' }, 
-              false, 
-              ['decrypt']
-            );
-            
-            const iv = base64ToArrayBuffer(data.iv);
-            const encryptedPdf = base64ToArrayBuffer(data.encryptedPdf);
-            const decryptedPdf = await crypto.subtle.decrypt(
-              { name: 'AES-GCM', iv: iv },
-              cryptoKey,
-              encryptedPdf
-            );
-            
-            setPdfData(decryptedPdf);
-          } catch (decryptError) {
-            console.error("Failed to decrypt PDF:", decryptError);
-            throw new Error("Failed to decrypt PDF data. Please check your encryption configuration.");
+            // First, try to get worksheet metadata and encrypted PDF
+            const { data, error: functionError } = await supabase.functions.invoke('get-encrypted-worksheet', {
+              body: { worksheetId, userId: 'anonymous' }, // Using anonymous for now
+            });
+
+            if (functionError) {
+              console.warn("Secure endpoint failed, trying fallback method:", functionError);
+              
+              // Check if it's a configuration error
+              if (functionError.message?.includes('Server configuration error') || 
+                  functionError.message?.includes('PDF_ENCRYPTION_KEY')) {
+                console.warn("PDF encryption key not configured in Supabase. Using fallback method.");
+                toast({
+                  title: "Configuration Notice",
+                  description: "PDF encryption is not configured. Using fallback method.",
+                  variant: "default",
+                });
+              }
+              
+              // Fallback to the existing method
+              const { data: fallbackData, error: fallbackError } = await supabase.functions.invoke('get-worksheet-data', {
+                body: { worksheetId },
+              });
+
+              if (fallbackError) {
+                console.warn("Fallback method also failed:", fallbackError);
+                throw new Error(`Supabase methods failed: ${fallbackError.message || 'Unknown error'}`);
+              }
+
+              if (!fallbackData) {
+                throw new Error('No worksheet data received from fallback method');
+              }
+
+              setWorksheetData(fallbackData.meta);
+              
+              // For fallback, we'll use the existing PDF URL method
+              if (fallbackData.pdfUrl) {
+                const pdfResponse = await fetch(fallbackData.pdfUrl);
+                if (!pdfResponse.ok) {
+                  throw new Error(`Failed to fetch PDF: ${pdfResponse.status} ${pdfResponse.statusText}`);
+                }
+                const pdfArrayBuffer = await pdfResponse.arrayBuffer();
+                setPdfData(pdfArrayBuffer);
+              } else {
+                throw new Error('No PDF URL provided in fallback data');
+              }
+              
+              return;
+            }
+
+            if (!data) {
+              throw new Error('No data received from secure endpoint');
+            }
+
+            // If we have encrypted data, decrypt it
+            if (data.encryptedPdf && data.iv) {
+              const key = import.meta.env.VITE_PDF_ENCRYPTION_KEY;
+              if (!key) {
+                throw new Error("Encryption key not found in environment.");
+              }
+
+              try {
+                const cryptoKey = await crypto.subtle.importKey(
+                  'raw', 
+                  new TextEncoder().encode(key), 
+                  { name: 'AES-GCM' }, 
+                  false, 
+                  ['decrypt']
+                );
+                
+                const iv = base64ToArrayBuffer(data.iv);
+                const encryptedPdf = base64ToArrayBuffer(data.encryptedPdf);
+                const decryptedPdf = await crypto.subtle.decrypt(
+                  { name: 'AES-GCM', iv: iv },
+                  cryptoKey,
+                  encryptedPdf
+                );
+                
+                setPdfData(decryptedPdf);
+              } catch (decryptError) {
+                console.error("Failed to decrypt PDF:", decryptError);
+                throw new Error("Failed to decrypt PDF data. Please check your encryption configuration.");
+              }
+            }
+
+            // Set worksheet metadata
+            if (data.meta) {
+              setWorksheetData(data.meta);
+            } else {
+              throw new Error('No worksheet metadata received');
+            }
+
+            return; // Success, exit early
+          } catch (supabaseError) {
+            console.warn("Supabase methods failed, falling back to local files:", supabaseError);
+            // Continue to local file fallback
           }
         }
 
-        // Set worksheet metadata
-        if (data.meta) {
-          setWorksheetData(data.meta);
-        } else {
-          throw new Error('No worksheet metadata received');
+        // Local file fallback
+        console.log("Using local file fallback for worksheet:", worksheetId);
+        
+        // Fetch worksheet metadata from local JSON file
+        const metadataResponse = await fetch(`/data/${worksheetId}.json`);
+        if (!metadataResponse.ok) {
+          throw new Error(`Worksheet metadata not found: ${metadataResponse.status} ${metadataResponse.statusText}`);
         }
+        const metadata = await metadataResponse.json();
+        setWorksheetData(metadata);
+
+        // Fetch PDF from local file
+        const pdfResponse = await fetch(`/pdfs/${worksheetId}.pdf`);
+        if (!pdfResponse.ok) {
+          throw new Error(`PDF file not found: ${pdfResponse.status} ${pdfResponse.statusText}`);
+        }
+        const pdfArrayBuffer = await pdfResponse.arrayBuffer();
+        setPdfData(pdfArrayBuffer);
 
       } catch (e: any) {
         console.error("Failed to fetch worksheet:", e);
@@ -194,10 +223,8 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
         
         if (e.message?.includes('Server configuration error')) {
           errorMessage = "Server configuration error. Please check the setup page for configuration instructions.";
-        } else if (e.message?.includes('Worksheet not found')) {
-          errorMessage = "Worksheet not found. Please check the worksheet ID and try again.";
-        } else if (e.message?.includes('PDF file not found')) {
-          errorMessage = "PDF file not found. The worksheet may not be properly uploaded.";
+        } else if (e.message?.includes('Worksheet metadata not found') || e.message?.includes('PDF file not found')) {
+          errorMessage = `Worksheet "${worksheetId}" not found. Please check the worksheet ID and try again.`;
         } else if (e.message?.includes('Failed to decrypt')) {
           errorMessage = "Failed to decrypt worksheet data. Please check your encryption configuration.";
         } else if (e.message?.includes('Failed to fetch PDF')) {
