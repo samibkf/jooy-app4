@@ -24,7 +24,7 @@ serve(async (req) => {
       )
     }
 
-    // For now, we'll return a successful response indicating fallback is needed
+    // For now, we'll return a placeholder response indicating the secure endpoint exists
     // but falls back to the existing method. In a real implementation, this would:
     // 1. Fetch the PDF from the private bucket
     // 2. Encrypt it using AES-GCM
@@ -32,11 +32,11 @@ serve(async (req) => {
     
     return new Response(
       JSON.stringify({ 
-        fallback: true,
-        message: 'Secure endpoint not fully implemented yet, using fallback method'
+        error: 'Secure endpoint not fully implemented yet',
+        fallback: true 
       }),
       { 
-        status: 200, 
+        status: 501, 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
       }
     )
