@@ -99,9 +99,13 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
           body: { worksheetId, userId: 'anonymous' }, // Using anonymous for now
         });
 
-        if (functionError) {
-          // If the secure endpoint fails, fallback to the existing method
-          console.warn("Secure endpoint failed, falling back to existing method:", functionError);
+        if (functionError || data?.fallback) {
+          // If the secure endpoint fails or indicates fallback, use the existing method
+          if (functionError) {
+            console.warn("Secure endpoint failed, falling back to existing method:", functionError);
+          } else {
+            console.info("Secure endpoint indicates fallback needed:", data?.message);
+          }
           
           const { data: fallbackData, error: fallbackError } = await supabase.functions.invoke('get-worksheet-data', {
             body: { worksheetId },
