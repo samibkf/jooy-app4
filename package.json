@@ -8,7 +8,10 @@
     "build": "vite build",
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "deploy:functions": "node deploy-functions.js",
+    "test:deployment": "node test-deployment.js",
+    "setup:complete": "npm run deploy:functions && npm run test:deployment"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",
