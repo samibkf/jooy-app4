@@ -43,10 +43,19 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
   const videoRef = useRef<HTMLVideoElement>(null);
   const textDisplayRef = useRef<HTMLDivElement>(null);
 
-  // Filter regions for current page
+  // Filter regions for current page and ensure description is always an array
   const regions = useMemo(() => {
     if (!worksheetData?.regions) return [];
-    return worksheetData.regions.filter((region: RegionData) => region.page === pageIndex);
+    return worksheetData.regions
+      .filter((region: RegionData) => region.page === pageIndex)
+      .map((region: RegionData) => ({
+        ...region,
+        description: Array.isArray(region.description) 
+          ? region.description 
+          : typeof region.description === 'string' 
+            ? [region.description]
+            : []
+      }));
   }, [worksheetData, pageIndex]);
 
   // Main data fetching effect
