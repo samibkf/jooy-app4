@@ -5,7 +5,6 @@ import { toast } from "@/components/ui/use-toast";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, Sparkles } from "lucide-react";
 import { supabase } from '../lib/supabaseClient';
-import { useWorksheetData } from '../hooks/useWorksheetData';
 import type { WorksheetMetadata, RegionData } from "@/types/worksheet";
 
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.js`;
@@ -17,6 +16,9 @@ interface WorksheetViewerProps {
 
 const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageIndex }) => {
   const [numPages, setNumPages] = useState<number | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+  const [worksheetData, setWorksheetData] = useState<WorksheetMetadata | null>(null);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   
   const [pdfDimensions, setPdfDimensions] = useState({ width: 0, height: 0 });
@@ -40,9 +42,6 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
   const audioRef = useRef<HTMLAudioElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const textDisplayRef = useRef<HTMLDivElement>(null);
-
-  // Use the existing hook for worksheet data
-  const { worksheetData, isLoading, error } = useWorksheetData(worksheetId);
 
   // Filter regions for current page and ensure description is properly split into paragraphs
   const regions = useMemo(() => {
@@ -73,34 +72,38 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
       });
   }, [worksheetData, pageIndex]);
 
-  // Separate effect for PDF URL fetching with fallback
+  // Main data fetching effect
   useEffect(() => {
-    const fetchPdfUrl = async () => {
+    const fetchWorksheet = async () => {
       if (!worksheetId) return;
       
+      setIsLoading(true);
+      setError(null);
+      setWorksheetData(null);
       setPdfUrl(null);
 
       try {
-        // First, try to get PDF URL from Supabase Edge Function
         const { data, error: functionError } = await supabase.functions.invoke('get-worksheet-data', {
           body: { worksheetId },
         });
 
-        if (!functionError && data?.pdfUrl) {
-          setPdfUrl(data.pdfUrl);
-          return;
+        if (functionError) { 
+          throw functionError; 
         }
-      } catch (e) {
-        console.warn("Edge Function failed, falling back to local PDF:", e);
-      }
 
-      // Fallback to local PDF file
-      const fallbackPdfUrl = `/pdfs/${worksheetId}.pdf`;
-      setPdfUrl(fallbackPdfUrl);
+        setWorksheetData(data.meta);
+        setPdfUrl(data.pdfUrl);
+
+      } catch (e: any) {
+        console.error("Failed to fetch worksheet:", e);
+        setError("Failed to load the interactive worksheet. Please try again.");
+      } finally {
+        setIsLoading(false);
+      }
     };
 
-    fetchPdfUrl();
-  }, [worksheetId]);
+    fetchWorksheet();
+  }, [worksheetId, pageIndex]);
 
   // Check if current page is DRM protected
   useEffect(() => {
@@ -246,11 +249,8 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
 
   const onDocumentLoadError = (err: Error) => {
     console.error("Error loading PDF:", err);
-    toast({
-      title: "Error",
-      description: "PDF not found or unable to load",
-      variant: "destructive",
-    });
+    setError("PDF not found or unable to load");
+    setIsLoading(false);
   };
   
   const onPageLoadSuccess = (page: any) => {
