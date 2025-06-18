@@ -9,17 +9,6 @@ import type { WorksheetMetadata, RegionData } from "@/types/worksheet";
 
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.js`;
 
-// Helper function to convert a Base64 string to an ArrayBuffer
-function base64ToArrayBuffer(base64: string): ArrayBuffer {
-  const binaryString = atob(base64);
-  const len = binaryString.length;
-  const bytes = new Uint8Array(len);
-  for (let i = 0; i < len; i++) {
-    bytes[i] = binaryString.charCodeAt(i);
-  }
-  return bytes.buffer;
-}
-
 interface WorksheetViewerProps {
   worksheetId: string;
   pageIndex: number;
@@ -30,7 +19,7 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [worksheetData, setWorksheetData] = useState<WorksheetMetadata | null>(null);
-  const [pdfData, setPdfData] = useState<ArrayBuffer | null>(null);
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   
   const [pdfDimensions, setPdfDimensions] = useState({ width: 0, height: 0 });
   const [scaleFactor, setScaleFactor] = useState(1);
@@ -85,75 +74,25 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
 
   // Main data fetching effect
   useEffect(() => {
-    const fetchAndDecryptWorksheet = async () => {
+    const fetchWorksheet = async () => {
       if (!worksheetId) return;
       
       setIsLoading(true);
       setError(null);
       setWorksheetData(null);
-      setPdfData(null);
+      setPdfUrl(null);
 
       try {
-        // First, try to get worksheet metadata and encrypted PDF
-        const { data, error: functionError } = await supabase.functions.invoke('get-encrypted-worksheet', {
-          body: { worksheetId, userId: 'anonymous' }, // Using anonymous for now
+        const { data, error: functionError } = await supabase.functions.invoke('get-worksheet-data', {
+          body: { worksheetId },
         });
 
-        if (functionError) {
-          // If the secure endpoint fails, fallback to the existing method
-          console.warn("Secure endpoint failed, falling back to existing method:", functionError);
-          
-          const { data: fallbackData, error: fallbackError } = await supabase.functions.invoke('get-worksheet-data', {
-            body: { worksheetId },
-          });
-
-          if (fallbackError) {
-            throw fallbackError;
-          }
-
-          setWorksheetData(fallbackData.meta);
-          
-          // For fallback, we'll use the existing PDF URL method
-          const pdfResponse = await fetch(fallbackData.pdfUrl);
-          if (!pdfResponse.ok) {
-            throw new Error('Failed to fetch PDF');
-          }
-          const pdfArrayBuffer = await pdfResponse.arrayBuffer();
-          setPdfData(pdfArrayBuffer);
-          
-          return;
+        if (functionError) { 
+          throw functionError; 
         }
 
-        // If we have encrypted data, decrypt it
-        if (data.encryptedPdf && data.iv) {
-          const key = import.meta.env.VITE_PDF_ENCRYPTION_KEY;
-          if (!key) {
-            throw new Error("Encryption key not found in environment.");
-          }
-
-          const cryptoKey = await crypto.subtle.importKey(
-            'raw', 
-            new TextEncoder().encode(key), 
-            { name: 'AES-GCM' }, 
-            false, 
-            ['decrypt']
-          );
-          
-          const iv = base64ToArrayBuffer(data.iv);
-          const encryptedPdf = base64ToArrayBuffer(data.encryptedPdf);
-          const decryptedPdf = await crypto.subtle.decrypt(
-            { name: 'AES-GCM', iv: iv },
-            cryptoKey,
-            encryptedPdf
-          );
-          
-          setPdfData(decryptedPdf);
-        }
-
-        // Set worksheet metadata
-        if (data.meta) {
-          setWorksheetData(data.meta);
-        }
+        setWorksheetData(data.meta);
+        setPdfUrl(data.pdfUrl);
 
       } catch (e: any) {
         console.error("Failed to fetch worksheet:", e);
@@ -163,7 +102,7 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
       }
     };
 
-    fetchAndDecryptWorksheet();
+    fetchWorksheet();
   }, [worksheetId, pageIndex]);
 
   // Check if current page is DRM protected
@@ -453,7 +392,7 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
     return (
       <div className="worksheet-container">
         <div className="worksheet-loading">
-          <p>Loading secure worksheet...</p>
+          <p>Loading worksheet...</p>
         </div>
       </div>
     );
@@ -474,7 +413,7 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
   }
 
   // Show error if no data available
-  if (!worksheetData || !pdfData) {
+  if (!worksheetData || !pdfUrl) {
     return (
       <div className="worksheet-container">
         <div className="worksheet-error">
@@ -507,7 +446,7 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
       
       <div className={`worksheet-pdf-container ${isTextMode ? 'hidden' : ''} ${isCurrentPageDrmProtected ? 'drm-active' : ''}`}>
         <Document
-          file={pdfData}
+          file={pdfUrl}
           onLoadSuccess={onDocumentLoadSuccess}
           onLoadError={onDocumentLoadError}
           loading={null}
@@ -538,7 +477,7 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
             }}
           >
             <Document
-              file={pdfData}
+              file={pdfUrl}
               className="clear-document"
             >
               <div
