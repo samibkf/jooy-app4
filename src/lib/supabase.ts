@@ -4,53 +4,35 @@ import type { Database } from '@/types/database'
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 
-// Create a mock client for development when Supabase is not configured
-const createMockClient = () => ({
-  from: () => ({
-    select: () => Promise.resolve({ data: null, error: new Error('Supabase not configured') }),
-    insert: () => Promise.resolve({ data: null, error: new Error('Supabase not configured') }),
-    update: () => Promise.resolve({ data: null, error: new Error('Supabase not configured') }),
-    delete: () => Promise.resolve({ data: null, error: new Error('Supabase not configured') }),
-    eq: function() { return this },
-    single: function() { return this },
-    order: function() { return this }
-  }),
-  auth: {
-    getSession: () => Promise.resolve({ data: { session: null }, error: null }),
-    signIn: () => Promise.resolve({ data: null, error: new Error('Supabase not configured') }),
-    signOut: () => Promise.resolve({ error: null }),
-  },
-})
+export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey)
 
-// Check if environment variables are properly configured
-const isSupabaseConfigured = supabaseUrl && supabaseAnonKey && 
-  supabaseUrl !== 'your_supabase_url_here' && 
-  supabaseAnonKey !== 'your_supabase_anon_key_here'
+export const shouldUseSupabase = () => {
+  return !!(supabaseUrl && supabaseAnonKey && supabaseUrl !== 'your-supabase-url' && supabaseAnonKey !== 'your-supabase-anon-key')
+}
 
-export const supabase = isSupabaseConfigured 
-  ? createClient<Database>(supabaseUrl, supabaseAnonKey)
-  : createMockClient() as any
-
-export const isSupabaseReady = isSupabaseConfigured
-
-// Helper function to check if we should use Supabase or fallback to JSON
-// Now also checks for table existence errors
-export const shouldUseSupabase = () => isSupabaseConfigured
-
-// Helper function to check if error indicates missing tables
 export const isMissingTableError = (error: any): boolean => {
   if (!error) return false
   
-  // Check for various indicators of missing table
-  const errorMessage = error.message || ''
+  // Check for various formats of missing table errors
+  const errorMessage = error.message || error.details || ''
   const errorCode = error.code || ''
   
-  return (
-    errorCode === '42P01' || // PostgreSQL relation does not exist
-    errorMessage.includes('relation') && errorMessage.includes('does not exist') ||
-    errorMessage.includes('table') && errorMessage.includes('does not exist') ||
-    errorMessage.includes('worksheets') && errorMessage.includes('does not exist')
+  // PostgreSQL error code for relation does not exist
+  if (errorCode === '42P01') return true
+  
+  // Check error message patterns
+  const missingTablePatterns = [
+    'relation "public.worksheets" does not exist',
+    'relation "public.regions" does not exist',
+    'relation "worksheets" does not exist',
+    'relation "regions" does not exist',
+    'table "worksheets" does not exist',
+    'table "regions" does not exist',
+    'does not exist',
+    'PGRST116' // PostgREST error for missing table
+  ]
+  
+  return missingTablePatterns.some(pattern => 
+    errorMessage.toLowerCase().includes(pattern.toLowerCase())
   )
 }
-
-export type { Database }
