@@ -34,6 +34,23 @@ export const supabase = isSupabaseConfigured
 export const isSupabaseReady = isSupabaseConfigured
 
 // Helper function to check if we should use Supabase or fallback to JSON
+// Now also checks for table existence errors
 export const shouldUseSupabase = () => isSupabaseConfigured
+
+// Helper function to check if error indicates missing tables
+export const isMissingTableError = (error: any): boolean => {
+  if (!error) return false
+  
+  // Check for various indicators of missing table
+  const errorMessage = error.message || ''
+  const errorCode = error.code || ''
+  
+  return (
+    errorCode === '42P01' || // PostgreSQL relation does not exist
+    errorMessage.includes('relation') && errorMessage.includes('does not exist') ||
+    errorMessage.includes('table') && errorMessage.includes('does not exist') ||
+    errorMessage.includes('worksheets') && errorMessage.includes('does not exist')
+  )
+}
 
 export type { Database }
