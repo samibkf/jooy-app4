@@ -297,6 +297,11 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
   };
   
   const handleRegionClick = (region: RegionData) => {
+    // Check if region has no description or empty description
+    if (!region.description || region.description.length === 0) {
+      return; // Do nothing if no description
+    }
+    
     setCurrentStepIndex(0);
     
     if (region.description && region.description.length > 0) {
