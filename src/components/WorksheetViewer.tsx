@@ -109,7 +109,7 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
   useEffect(() => {
     if (worksheetData) {
       const isDrmProtected = worksheetData.drmProtected || 
-        (worksheetData.drmProtectedPages && worksheetData.drmProtectedPages.includes(pageIndex));
+        (Array.isArray(worksheetData.drmProtectedPages) && worksheetData.drmProtectedPages.includes(pageIndex));
       setIsCurrentPageDrmProtected(isDrmProtected);
     }
   }, [worksheetData, pageIndex]);
