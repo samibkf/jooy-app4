@@ -20,6 +20,16 @@ export const isMissingTableError = (error: any): boolean => {
   // PostgreSQL error code for relation does not exist
   if (errorCode === '42P01') return true
   
+  // Check for HTTP response errors that contain the PostgreSQL error
+  if (error.status === 404 && error.body) {
+    try {
+      const bodyObj = typeof error.body === 'string' ? JSON.parse(error.body) : error.body
+      if (bodyObj.code === '42P01') return true
+    } catch (e) {
+      // If parsing fails, continue with string checks
+    }
+  }
+  
   // Check error message patterns
   const missingTablePatterns = [
     'relation "public.worksheets" does not exist',

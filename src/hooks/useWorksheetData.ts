@@ -65,7 +65,7 @@ export const useWorksheetData = (worksheetId: string) => {
         }
       } catch (error: any) {
         // Final fallback to JSON if any unexpected error occurs
-        if (isMissingTableError(error) || error.message?.includes('42P01')) {
+        if (isMissingTableError(error) || error.message?.includes('42P01') || error.status === 404) {
           console.log('Supabase tables not found, falling back to JSON files. Please run: supabase db push')
           try {
             const response = await fetch(`/data/${worksheetId}.json`)
@@ -84,7 +84,7 @@ export const useWorksheetData = (worksheetId: string) => {
     staleTime: 5 * 60 * 1000, // 5 minutes
     retry: (failureCount, error) => {
       // Don't retry if it's a 404, missing table error, or if Supabase is not configured
-      if (error.message.includes('404') || isMissingTableError(error) || error.message?.includes('42P01') || !shouldUseSupabase()) {
+      if (error.message.includes('404') || isMissingTableError(error) || error.message?.includes('42P01') || error.status === 404 || !shouldUseSupabase()) {
         return false
       }
       return failureCount < 3
@@ -132,7 +132,7 @@ export const useRegionsByPage = (worksheetId: string, pageNumber: number) => {
         return data || []
       } catch (error: any) {
         // Final fallback to JSON if any unexpected error occurs
-        if (isMissingTableError(error) || error.message?.includes('42P01') || error.code === '42P01') {
+        if (isMissingTableError(error) || error.message?.includes('42P01') || error.code === '42P01' || error.status === 404) {
           console.log('Supabase tables not found, falling back to JSON files. Please run: supabase db push')
           try {
             const response = await fetch(`/data/${worksheetId}.json`)
