@@ -100,28 +100,52 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
         });
 
         if (functionError) {
-          // If the secure endpoint fails, fallback to the existing method
           console.warn("Secure endpoint failed, falling back to existing method:", functionError);
           
+          // Check if it's a configuration error
+          if (functionError.message?.includes('Server configuration error') || 
+              functionError.message?.includes('PDF_ENCRYPTION_KEY')) {
+            console.warn("PDF encryption key not configured in Supabase. Using fallback method.");
+            toast({
+              title: "Configuration Notice",
+              description: "PDF encryption is not configured. Using fallback method.",
+              variant: "default",
+            });
+          }
+          
+          // Fallback to the existing method
           const { data: fallbackData, error: fallbackError } = await supabase.functions.invoke('get-worksheet-data', {
             body: { worksheetId },
           });
 
           if (fallbackError) {
-            throw fallbackError;
+            console.error("Fallback method also failed:", fallbackError);
+            throw new Error(`Failed to load worksheet: ${fallbackError.message || 'Unknown error'}`);
+          }
+
+          if (!fallbackData) {
+            throw new Error('No worksheet data received from fallback method');
           }
 
           setWorksheetData(fallbackData.meta);
           
           // For fallback, we'll use the existing PDF URL method
-          const pdfResponse = await fetch(fallbackData.pdfUrl);
-          if (!pdfResponse.ok) {
-            throw new Error('Failed to fetch PDF');
+          if (fallbackData.pdfUrl) {
+            const pdfResponse = await fetch(fallbackData.pdfUrl);
+            if (!pdfResponse.ok) {
+              throw new Error(`Failed to fetch PDF: ${pdfResponse.status} ${pdfResponse.statusText}`);
+            }
+            const pdfArrayBuffer = await pdfResponse.arrayBuffer();
+            setPdfData(pdfArrayBuffer);
+          } else {
+            throw new Error('No PDF URL provided in fallback data');
           }
-          const pdfArrayBuffer = await pdfResponse.arrayBuffer();
-          setPdfData(pdfArrayBuffer);
           
           return;
+        }
+
+        if (!data) {
+          throw new Error('No data received from secure endpoint');
         }
 
         // If we have encrypted data, decrypt it
@@ -131,33 +155,65 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
             throw new Error("Encryption key not found in environment.");
           }
 
-          const cryptoKey = await crypto.subtle.importKey(
-            'raw', 
-            new TextEncoder().encode(key), 
-            { name: 'AES-GCM' }, 
-            false, 
-            ['decrypt']
-          );
-          
-          const iv = base64ToArrayBuffer(data.iv);
-          const encryptedPdf = base64ToArrayBuffer(data.encryptedPdf);
-          const decryptedPdf = await crypto.subtle.decrypt(
-            { name: 'AES-GCM', iv: iv },
-            cryptoKey,
-            encryptedPdf
-          );
-          
-          setPdfData(decryptedPdf);
+          try {
+            const cryptoKey = await crypto.subtle.importKey(
+              'raw', 
+              new TextEncoder().encode(key), 
+              { name: 'AES-GCM' }, 
+              false, 
+              ['decrypt']
+            );
+            
+            const iv = base64ToArrayBuffer(data.iv);
+            const encryptedPdf = base64ToArrayBuffer(data.encryptedPdf);
+            const decryptedPdf = await crypto.subtle.decrypt(
+              { name: 'AES-GCM', iv: iv },
+              cryptoKey,
+              encryptedPdf
+            );
+            
+            setPdfData(decryptedPdf);
+          } catch (decryptError) {
+            console.error("Failed to decrypt PDF:", decryptError);
+            throw new Error("Failed to decrypt PDF data. Please check your encryption configuration.");
+          }
         }
 
         // Set worksheet metadata
         if (data.meta) {
           setWorksheetData(data.meta);
+        } else {
+          throw new Error('No worksheet metadata received');
         }
 
       } catch (e: any) {
         console.error("Failed to fetch worksheet:", e);
-        setError("Failed to load the interactive worksheet. Please try again.");
+        
+        // Provide more specific error messages
+        let errorMessage = "Failed to load the interactive worksheet.";
+        
+        if (e.message?.includes('Server configuration error')) {
+          errorMessage = "Server configuration error. Please check the setup page for configuration instructions.";
+        } else if (e.message?.includes('Worksheet not found')) {
+          errorMessage = "Worksheet not found. Please check the worksheet ID and try again.";
+        } else if (e.message?.includes('PDF file not found')) {
+          errorMessage = "PDF file not found. The worksheet may not be properly uploaded.";
+        } else if (e.message?.includes('Failed to decrypt')) {
+          errorMessage = "Failed to decrypt worksheet data. Please check your encryption configuration.";
+        } else if (e.message?.includes('Failed to fetch PDF')) {
+          errorMessage = "Failed to load PDF file. Please check your network connection and try again.";
+        } else if (e.message) {
+          errorMessage = e.message;
+        }
+        
+        setError(errorMessage);
+        
+        // Show toast notification for better user feedback
+        toast({
+          title: "Error Loading Worksheet",
+          description: errorMessage,
+          variant: "destructive",
+        });
       } finally {
         setIsLoading(false);
       }
@@ -465,6 +521,11 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
       <div className="worksheet-container">
         <div className="worksheet-error">
           <p>{error}</p>
+          {error.includes('Server configuration error') && (
+            <p className="text-sm text-gray-600 mt-2">
+              Visit the <a href="/setup" className="text-blue-600 underline">setup page</a> for configuration instructions.
+            </p>
+          )}
           <Button onClick={() => window.location.href = '/'}>
             Return to Scanner
           </Button>
