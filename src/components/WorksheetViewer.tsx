@@ -36,6 +36,7 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
   
   const [showVideo, setShowVideo] = useState<boolean>(false);
   const [isAudioPlaying, setIsAudioPlaying] = useState<boolean>(false);
+  const [audioAvailable, setAudioAvailable] = useState<boolean>(true);
   
   const pdfContainerRef = useRef<HTMLDivElement>(null);
   const pdfRef = useRef<HTMLCanvasElement>(null);
@@ -99,6 +100,7 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
     setIsTextMode(false);
     setShowVideo(false);
     setIsAudioPlaying(false);
+    setAudioAvailable(true);
     
     if (audioRef.current) {
       audioRef.current.pause();
@@ -112,7 +114,7 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
   }, [worksheetId, pageIndex]);
 
   const handleMessageClick = (index: number) => {
-    if (!activeRegion) return;
+    if (!activeRegion || !audioAvailable) return;
     
     if (audioRef.current) {
       audioRef.current.pause();
@@ -261,13 +263,24 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
     audioRef.current.src = audioPath;
     
     audioRef.current.onerror = () => {
-      console.error(`Failed to load audio: ${audioPath}`);
+      console.warn(`Audio file not found: ${audioPath}`);
       setIsAudioPlaying(false);
+      setAudioAvailable(false);
+      
+      // Show user-friendly message only once per worksheet
+      if (audioAvailable) {
+        toast({
+          title: "Audio Not Available",
+          description: `Audio content is not available for worksheet ${worksheetId}. You can still view the text content.`,
+          variant: "default"
+        });
+      }
     };
     
     audioRef.current.play().catch(err => {
-      console.error("Error playing audio:", err);
+      console.warn("Error playing audio:", err);
       setIsAudioPlaying(false);
+      setAudioAvailable(false);
     });
   };
   
@@ -283,9 +296,12 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
         videoRef.current.play().catch(err => console.error("Error playing video:", err));
       }
       
-      setTimeout(() => {
-        playAudioSegment(region.name, 0);
-      }, 500);
+      // Only try to play audio if it's available
+      if (audioAvailable) {
+        setTimeout(() => {
+          playAudioSegment(region.name, 0);
+        }, 500);
+      }
     } else {
       setDisplayedMessages([]);
       setShowVideo(false);
@@ -309,9 +325,12 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
         activeRegion.description[nextStepIndex]
       ]);
       
-      setTimeout(() => {
-        playAudioSegment(activeRegion.name, nextStepIndex);
-      }, 500);
+      // Only try to play audio if it's available
+      if (audioAvailable) {
+        setTimeout(() => {
+          playAudioSegment(activeRegion.name, nextStepIndex);
+        }, 500);
+      }
     }
   };
   
@@ -337,7 +356,8 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
           videoRef.current.play().catch(err => console.error("Error playing video:", err));
         }
         
-        if (activeRegion) {
+        // Only try to play audio if it's available
+        if (activeRegion && audioAvailable) {
           setTimeout(() => {
             playAudioSegment(activeRegion.name, currentStepIndex);
           }, 500);
@@ -519,6 +539,14 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
                   <p>{message}</p>
                 </div>
               ))}
+              
+              {!audioAvailable && displayedMessages.length > 0 && (
+                <div className="audio-unavailable-notice">
+                  <p className="text-sm text-gray-500 italic">
+                    Note: Audio content is not available for this worksheet. Text content is displayed above.
+                  </p>
+                </div>
+              )}
             </div>
           </div>
         </div>
