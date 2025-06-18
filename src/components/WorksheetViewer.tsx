@@ -18,6 +18,7 @@ interface WorksheetViewerProps {
 const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageIndex }) => {
   const [numPages, setNumPages] = useState<number | null>(null);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+  const [pdfError, setPdfError] = useState<string | null>(null);
   
   const [pdfDimensions, setPdfDimensions] = useState({ width: 0, height: 0 });
   const [scaleFactor, setScaleFactor] = useState(1);
@@ -42,7 +43,7 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
   const textDisplayRef = useRef<HTMLDivElement>(null);
 
   // Use the existing hook for worksheet data
-  const { worksheetData, isLoading, error } = useWorksheetData(worksheetId);
+  const { data: worksheetData, isLoading, error } = useWorksheetData(worksheetId);
 
   // Filter regions for current page and ensure description is properly split into paragraphs
   const regions = useMemo(() => {
@@ -73,30 +74,37 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
       });
   }, [worksheetData, pageIndex]);
 
-  // Separate effect for PDF URL fetching with fallback
+  // Effect for PDF URL fetching from Supabase Edge Function only
   useEffect(() => {
     const fetchPdfUrl = async () => {
       if (!worksheetId) return;
       
       setPdfUrl(null);
+      setPdfError(null);
 
       try {
-        // First, try to get PDF URL from Supabase Edge Function
         const { data, error: functionError } = await supabase.functions.invoke('get-worksheet-data', {
           body: { worksheetId },
         });
 
-        if (!functionError && data?.pdfUrl) {
-          setPdfUrl(data.pdfUrl);
-          return;
+        if (functionError) {
+          throw new Error(`Edge Function error: ${functionError.message}`);
         }
-      } catch (e) {
-        console.warn("Edge Function failed, falling back to local PDF:", e);
-      }
 
-      // Fallback to local PDF file
-      const fallbackPdfUrl = `/pdfs/${worksheetId}.pdf`;
-      setPdfUrl(fallbackPdfUrl);
+        if (!data?.pdfUrl) {
+          throw new Error("No PDF URL returned from server");
+        }
+
+        setPdfUrl(data.pdfUrl);
+      } catch (e: any) {
+        console.error("Failed to fetch PDF URL:", e);
+        setPdfError("Failed to load the PDF from server. Please try again.");
+        toast({
+          title: "Error",
+          description: "Failed to load the PDF from server. Please try again.",
+          variant: "destructive",
+        });
+      }
     };
 
     fetchPdfUrl();
@@ -404,6 +412,20 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
       <div className="worksheet-container">
         <div className="worksheet-error">
           <p>{error}</p>
+          <Button onClick={() => window.location.href = '/'}>
+            Return to Scanner
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error if PDF URL failed to load
+  if (pdfError) {
+    return (
+      <div className="worksheet-container">
+        <div className="worksheet-error">
+          <p>{pdfError}</p>
           <Button onClick={() => window.location.href = '/'}>
             Return to Scanner
           </Button>
