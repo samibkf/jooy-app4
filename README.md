@@ -71,3 +71,44 @@ Yes, you can!
 To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
 
 Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+
+## Supabase Setup
+
+### Environment Variables
+
+The following environment variables need to be set in your Supabase project:
+
+1. **PDF_ENCRYPTION_KEY**: A 32-character string used for AES-256 encryption of PDF files
+   - Example: `a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6`
+   - This should be set as a secret in your Supabase project settings
+
+### Setting up Supabase Secrets
+
+1. Go to your Supabase project dashboard
+2. Navigate to Settings > Edge Functions
+3. Add the following secret:
+   - Name: `PDF_ENCRYPTION_KEY`
+   - Value: Your 32-character encryption key
+
+### Storage Buckets
+
+The application expects the following storage buckets:
+
+1. **private-pdfs**: For secure PDF storage (private access)
+2. **pdfs**: For fallback PDF storage (public access)
+
+### Edge Functions
+
+The following Edge Functions are implemented:
+
+1. **get-encrypted-worksheet**: Securely fetches and encrypts PDF data
+2. **get-worksheet-data**: Fallback function for basic worksheet data
+
+### Database Schema
+
+The application uses the following tables:
+
+- `worksheets`: Stores worksheet metadata
+- `regions`: Stores interactive regions for each worksheet
+
+Run the migrations in the `supabase/migrations` folder to set up the database schema.
