@@ -43,19 +43,33 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
   const videoRef = useRef<HTMLVideoElement>(null);
   const textDisplayRef = useRef<HTMLDivElement>(null);
 
-  // Filter regions for current page and ensure description is always an array
+  // Filter regions for current page and ensure description is properly split into paragraphs
   const regions = useMemo(() => {
     if (!worksheetData?.regions) return [];
     return worksheetData.regions
       .filter((region: RegionData) => region.page === pageIndex)
-      .map((region: RegionData) => ({
-        ...region,
-        description: Array.isArray(region.description) 
-          ? region.description 
-          : typeof region.description === 'string' 
-            ? [region.description]
-            : []
-      }));
+      .map((region: RegionData) => {
+        let processedDescription: string[] = [];
+        
+        if (Array.isArray(region.description)) {
+          // If it's already an array, process each item to split by newlines
+          processedDescription = region.description.flatMap(item => 
+            typeof item === 'string' 
+              ? item.split('\n').filter(paragraph => paragraph.trim() !== '')
+              : []
+          );
+        } else if (typeof region.description === 'string') {
+          // If it's a string, split by newlines
+          processedDescription = region.description
+            .split('\n')
+            .filter(paragraph => paragraph.trim() !== '');
+        }
+        
+        return {
+          ...region,
+          description: processedDescription
+        };
+      });
   }, [worksheetData, pageIndex]);
 
   // Main data fetching effect
