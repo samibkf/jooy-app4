@@ -9,6 +9,7 @@ import QrScannerPage from "./pages/QrScannerPage";
 import WorksheetPage from "./pages/WorksheetPage";
 import QRScannerButton from "./components/QRScannerButton";
 import FullscreenButton from "./components/FullscreenButton";
+import PWAInstallPrompt from "./components/PWAInstallPrompt";
 
 const queryClient = new QueryClient();
 
@@ -29,6 +30,7 @@ const App = () => (
           <Route path="/" element={null} />
           <Route path="*" element={<QRScannerButton />} />
         </Routes>
+        <PWAInstallPrompt />
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
