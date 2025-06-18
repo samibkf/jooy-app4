@@ -20,6 +20,15 @@ function base64ToArrayBuffer(base64: string): ArrayBuffer {
   return bytes.buffer;
 }
 
+// Helper function to convert hex string to ArrayBuffer for the encryption key
+function hexToArrayBuffer(hex: string): ArrayBuffer {
+  const bytes = new Uint8Array(hex.length / 2);
+  for (let i = 0; i < hex.length; i += 2) {
+    bytes[i / 2] = parseInt(hex.substr(i, 2), 16);
+  }
+  return bytes.buffer;
+}
+
 interface WorksheetViewerProps {
   worksheetId: string;
   pageIndex: number;
@@ -95,41 +104,67 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
       setPdfData(null);
 
       try {
+        console.log('Fetching secure worksheet for:', { worksheetId, userId });
+        
         // 1. Call the secure backend function to get encrypted PDF
         const { data: encryptedData, error: funcError } = await supabase.functions.invoke('get-encrypted-worksheet', {
           body: { worksheetId, userId },
         });
         
         if (funcError) {
+          console.error('Supabase function error:', funcError);
           throw funcError;
         }
 
+        console.log('Received encrypted data:', {
+          hasEncryptedPdf: !!encryptedData?.encryptedPdf,
+          hasIv: !!encryptedData?.iv,
+          encryptedPdfLength: encryptedData?.encryptedPdf?.length,
+          ivLength: encryptedData?.iv?.length
+        });
+
         // 2. Prepare for decryption
-        const key = import.meta.env.VITE_PDF_ENCRYPTION_KEY;
-        if (!key) {
+        const keyHex = import.meta.env.VITE_PDF_ENCRYPTION_KEY;
+        if (!keyHex) {
           throw new Error("Encryption key not found in environment.");
         }
 
+        console.log('Using encryption key length:', keyHex.length);
+
+        // Convert hex key to ArrayBuffer
+        const keyBuffer = hexToArrayBuffer(keyHex);
+        console.log('Key buffer length:', keyBuffer.byteLength);
+
         const cryptoKey = await crypto.subtle.importKey(
           'raw', 
-          new TextEncoder().encode(key), 
+          keyBuffer, 
           { name: 'AES-GCM' }, 
           false, 
           ['decrypt']
         );
         
+        console.log('Crypto key imported successfully');
+        
         // 3. Decode the data and decrypt it
         const iv = base64ToArrayBuffer(encryptedData.iv);
         const encryptedPdf = base64ToArrayBuffer(encryptedData.encryptedPdf);
+        
+        console.log('Decryption parameters:', {
+          ivLength: iv.byteLength,
+          encryptedPdfLength: encryptedPdf.byteLength
+        });
+        
         const decryptedPdf = await crypto.subtle.decrypt(
           { name: 'AES-GCM', iv: iv },
           cryptoKey,
           encryptedPdf
         );
         
+        console.log('PDF decrypted successfully, size:', decryptedPdf.byteLength);
         setPdfData(decryptedPdf);
 
         // 4. Fetch worksheet metadata from database
+        console.log('Fetching worksheet metadata...');
         const { data: worksheet, error: worksheetError } = await supabase
           .from('worksheets')
           .select('*')
@@ -137,6 +172,7 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
           .single();
 
         if (worksheetError) {
+          console.error('Worksheet metadata error:', worksheetError);
           throw new Error(`Failed to fetch worksheet metadata: ${worksheetError.message}`);
         }
 
@@ -147,6 +183,7 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
           .order('page', { ascending: true });
 
         if (regionsError) {
+          console.error('Regions data error:', regionsError);
           throw new Error(`Failed to fetch regions: ${regionsError.message}`);
         }
 
@@ -158,10 +195,21 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
           regions: regionsData || []
         };
 
+        console.log('Worksheet metadata loaded:', {
+          documentName: metadata.documentName,
+          regionsCount: metadata.regions.length,
+          drmProtected: metadata.drmProtected
+        });
+
         setWorksheetData(metadata);
 
       } catch (e: any) {
         console.error("Failed to fetch secure worksheet:", e);
+        console.error("Error details:", {
+          message: e.message,
+          stack: e.stack,
+          name: e.name
+        });
         setError("Could not load the worksheet. Please try again.");
       } finally {
         setIsLoading(false);
