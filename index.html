@@ -3,18 +3,36 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>pdf-scan-navigator</title>
-    <meta name="description" content="Lovable Generated Project" />
-    <meta name="author" content="Lovable" />
+    <title>PDF Scan Navigator</title>
+    <meta name="description" content="Interactive PDF worksheet navigator with QR code scanning" />
+    <meta name="author" content="PDF Navigator Team" />
 
-    <meta property="og:title" content="pdf-scan-navigator" />
-    <meta property="og:description" content="Lovable Generated Project" />
+    <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#3b82f6" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="PDF Navigator" />
+    <meta name="mobile-web-app-capable" content="yes" />
+
+    <!-- Manifest -->
+    <link rel="manifest" href="/manifest.json" />
+
+    <!-- Icons -->
+    <link rel="icon" type="image/png" sizes="192x192" href="/icon-192x192.png" />
+    <link rel="icon" type="image/png" sizes="512x512" href="/icon-512x512.png" />
+    <link rel="apple-touch-icon" href="/icon-192x192.png" />
+
+    <!-- Open Graph -->
+    <meta property="og:title" content="PDF Scan Navigator" />
+    <meta property="og:description" content="Interactive PDF worksheet navigator with QR code scanning" />
     <meta property="og:type" content="website" />
-    <meta property="og:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
+    <meta property="og:image" content="/icon-512x512.png" />
 
+    <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:site" content="@lovable_dev" />
-    <meta name="twitter:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
+    <meta name="twitter:title" content="PDF Scan Navigator" />
+    <meta name="twitter:description" content="Interactive PDF worksheet navigator with QR code scanning" />
+    <meta name="twitter:image" content="/icon-512x512.png" />
   </head>
 
   <body>
@@ -22,5 +40,107 @@
     <!-- IMPORTANT: DO NOT REMOVE THIS SCRIPT TAG OR THIS VERY COMMENT! -->
     <script src="https://cdn.gpteng.co/gptengineer.js" type="module"></script>
     <script type="module" src="/src/main.tsx"></script>
+    
+    <!-- Service Worker Registration -->
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js')
+            .then((registration) => {
+              console.log('SW registered: ', registration);
+              
+              // Check for updates
+              registration.addEventListener('updatefound', () => {
+                const newWorker = registration.installing;
+                if (newWorker) {
+                  newWorker.addEventListener('statechange', () => {
+                    if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                      // New content is available, prompt user to refresh
+                      if (confirm('New version available! Refresh to update?')) {
+                        window.location.reload();
+                      }
+                    }
+                  });
+                }
+              });
+            })
+            .catch((registrationError) => {
+              console.log('SW registration failed: ', registrationError);
+            });
+        });
+
+        // Listen for messages from service worker
+        navigator.serviceWorker.addEventListener('message', (event) => {
+          if (event.data && event.data.type === 'SW_UPDATE_AVAILABLE') {
+            if (confirm('New version available! Refresh to update?')) {
+              window.location.reload();
+            }
+          }
+        });
+      }
+
+      // Handle app install prompt
+      let deferredPrompt;
+      window.addEventListener('beforeinstallprompt', (e) => {
+        // Prevent Chrome 67 and earlier from automatically showing the prompt
+        e.preventDefault();
+        // Stash the event so it can be triggered later
+        deferredPrompt = e;
+        
+        // Show install button or banner
+        console.log('App can be installed');
+        
+        // Optionally show a custom install button
+        const installButton = document.createElement('button');
+        installButton.textContent = 'Install App';
+        installButton.style.cssText = `
+          position: fixed;
+          bottom: 20px;
+          left: 20px;
+          z-index: 1000;
+          background: #3b82f6;
+          color: white;
+          border: none;
+          padding: 10px 20px;
+          border-radius: 8px;
+          cursor: pointer;
+          font-size: 14px;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        `;
+        
+        installButton.addEventListener('click', () => {
+          // Hide the button
+          installButton.style.display = 'none';
+          // Show the prompt
+          deferredPrompt.prompt();
+          // Wait for the user to respond to the prompt
+          deferredPrompt.userChoice.then((choiceResult) => {
+            if (choiceResult.outcome === 'accepted') {
+              console.log('User accepted the install prompt');
+            } else {
+              console.log('User dismissed the install prompt');
+            }
+            deferredPrompt = null;
+          });
+        });
+        
+        // Add button to page after a short delay
+        setTimeout(() => {
+          document.body.appendChild(installButton);
+          
+          // Auto-hide after 10 seconds
+          setTimeout(() => {
+            if (installButton.parentNode) {
+              installButton.remove();
+            }
+          }, 10000);
+        }, 2000);
+      });
+
+      // Handle successful app install
+      window.addEventListener('appinstalled', (evt) => {
+        console.log('App was installed successfully');
+      });
+    </script>
   </body>
 </html>
