@@ -91,7 +91,7 @@ serve(async (req) => {
 
     // Try to fetch PDF from private bucket first, fallback to public
     let pdfData: ArrayBuffer
-    let pdfPath = `pdfs/${worksheetId}.pdf`
+    let pdfPath = `${worksheetId}.pdf`
     
     try {
       // Try private bucket first

@@ -76,7 +76,7 @@ serve(async (req) => {
     }
 
     // Generate PDF URL (fallback method)
-    const pdfUrl = `${supabaseUrl}/storage/v1/object/public/pdfs/pdfs/${worksheetId}.pdf`
+    const pdfUrl = `${supabaseUrl}/storage/v1/object/public/pdfs/${worksheetId}.pdf`
 
     return new Response(
       JSON.stringify({
