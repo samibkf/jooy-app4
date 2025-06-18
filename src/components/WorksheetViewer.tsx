@@ -9,38 +9,17 @@ import type { WorksheetMetadata, RegionData } from "@/types/worksheet";
 
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.js`;
 
-// Helper function to convert a Base64 string to an ArrayBuffer
-function base64ToArrayBuffer(base64: string): ArrayBuffer {
-  const binaryString = atob(base64);
-  const len = binaryString.length;
-  const bytes = new Uint8Array(len);
-  for (let i = 0; i < len; i++) {
-    bytes[i] = binaryString.charCodeAt(i);
-  }
-  return bytes.buffer;
-}
-
-// Helper function to convert hex string to ArrayBuffer for the encryption key
-function hexToArrayBuffer(hex: string): ArrayBuffer {
-  const bytes = new Uint8Array(hex.length / 2);
-  for (let i = 0; i < hex.length; i += 2) {
-    bytes[i / 2] = parseInt(hex.substr(i, 2), 16);
-  }
-  return bytes.buffer;
-}
-
 interface WorksheetViewerProps {
   worksheetId: string;
   pageIndex: number;
-  userId: string;
 }
 
-const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageIndex, userId }) => {
+const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageIndex }) => {
   const [numPages, setNumPages] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [worksheetData, setWorksheetData] = useState<WorksheetMetadata | null>(null);
-  const [pdfData, setPdfData] = useState<ArrayBuffer | null>(null);
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   
   const [pdfDimensions, setPdfDimensions] = useState({ width: 0, height: 0 });
   const [scaleFactor, setScaleFactor] = useState(1);
@@ -93,131 +72,38 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
       });
   }, [worksheetData, pageIndex]);
 
-  // Main data fetching effect - now fetches encrypted PDF and metadata
+  // Main data fetching effect
   useEffect(() => {
-    const fetchSecureWorksheet = async () => {
-      if (!worksheetId || !userId) return;
+    const fetchWorksheet = async () => {
+      if (!worksheetId) return;
       
       setIsLoading(true);
       setError(null);
       setWorksheetData(null);
-      setPdfData(null);
+      setPdfUrl(null);
 
       try {
-        console.log('Fetching secure worksheet for:', { worksheetId, userId });
-        
-        // 1. Call the secure backend function to get encrypted PDF
-        const { data: encryptedData, error: funcError } = await supabase.functions.invoke('get-encrypted-worksheet', {
-          body: { worksheetId, userId },
-        });
-        
-        if (funcError) {
-          console.error('Supabase function error:', funcError);
-          throw funcError;
-        }
-
-        console.log('Received encrypted data:', {
-          hasEncryptedPdf: !!encryptedData?.encryptedPdf,
-          hasIv: !!encryptedData?.iv,
-          encryptedPdfLength: encryptedData?.encryptedPdf?.length,
-          ivLength: encryptedData?.iv?.length
+        const { data, error: functionError } = await supabase.functions.invoke('get-worksheet-data', {
+          body: { worksheetId },
         });
 
-        // 2. Prepare for decryption
-        const keyHex = import.meta.env.VITE_PDF_ENCRYPTION_KEY;
-        if (!keyHex) {
-          throw new Error("Encryption key not found in environment.");
+        if (functionError) { 
+          throw functionError; 
         }
 
-        console.log('Using encryption key length:', keyHex.length);
-
-        // Convert hex key to ArrayBuffer
-        const keyBuffer = hexToArrayBuffer(keyHex);
-        console.log('Key buffer length:', keyBuffer.byteLength);
-
-        const cryptoKey = await crypto.subtle.importKey(
-          'raw', 
-          keyBuffer, 
-          { name: 'AES-GCM' }, 
-          false, 
-          ['decrypt']
-        );
-        
-        console.log('Crypto key imported successfully');
-        
-        // 3. Decode the data and decrypt it
-        const iv = base64ToArrayBuffer(encryptedData.iv);
-        const encryptedPdf = base64ToArrayBuffer(encryptedData.encryptedPdf);
-        
-        console.log('Decryption parameters:', {
-          ivLength: iv.byteLength,
-          encryptedPdfLength: encryptedPdf.byteLength
-        });
-        
-        const decryptedPdf = await crypto.subtle.decrypt(
-          { name: 'AES-GCM', iv: iv },
-          cryptoKey,
-          encryptedPdf
-        );
-        
-        console.log('PDF decrypted successfully, size:', decryptedPdf.byteLength);
-        setPdfData(decryptedPdf);
-
-        // 4. Fetch worksheet metadata from database
-        console.log('Fetching worksheet metadata...');
-        const { data: worksheet, error: worksheetError } = await supabase
-          .from('worksheets')
-          .select('*')
-          .eq('id', worksheetId)
-          .single();
-
-        if (worksheetError) {
-          console.error('Worksheet metadata error:', worksheetError);
-          throw new Error(`Failed to fetch worksheet metadata: ${worksheetError.message}`);
-        }
-
-        const { data: regionsData, error: regionsError } = await supabase
-          .from('regions')
-          .select('*')
-          .eq('worksheet_id', worksheetId)
-          .order('page', { ascending: true });
-
-        if (regionsError) {
-          console.error('Regions data error:', regionsError);
-          throw new Error(`Failed to fetch regions: ${regionsError.message}`);
-        }
-
-        const metadata: WorksheetMetadata = {
-          documentName: worksheet.document_name,
-          documentId: worksheet.document_id,
-          drmProtectedPages: worksheet.drm_protected_pages || [],
-          drmProtected: worksheet.drm_protected || false,
-          regions: regionsData || []
-        };
-
-        console.log('Worksheet metadata loaded:', {
-          documentName: metadata.documentName,
-          regionsCount: metadata.regions.length,
-          drmProtected: metadata.drmProtected
-        });
-
-        setWorksheetData(metadata);
+        setWorksheetData(data.meta);
+        setPdfUrl(data.pdfUrl);
 
       } catch (e: any) {
-        console.error("Failed to fetch secure worksheet:", e);
-        console.error("Error details:", {
-          message: e.message,
-          stack: e.stack,
-          name: e.name
-        });
-        setError("Could not load the worksheet. Please try again.");
+        console.error("Failed to fetch worksheet:", e);
+        setError("Failed to load the interactive worksheet. Please try again.");
       } finally {
         setIsLoading(false);
       }
     };
 
-    fetchSecureWorksheet();
-  }, [worksheetId, pageIndex, userId]);
+    fetchWorksheet();
+  }, [worksheetId, pageIndex]);
 
   // Check if current page is DRM protected
   useEffect(() => {
@@ -506,7 +392,7 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
     return (
       <div className="worksheet-container">
         <div className="worksheet-loading">
-          <p>Loading secure worksheet...</p>
+          <p>Loading worksheet...</p>
         </div>
       </div>
     );
@@ -527,7 +413,7 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
   }
 
   // Show error if no data available
-  if (!worksheetData || !pdfData) {
+  if (!worksheetData || !pdfUrl) {
     return (
       <div className="worksheet-container">
         <div className="worksheet-error">
@@ -560,7 +446,7 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
       
       <div className={`worksheet-pdf-container ${isTextMode ? 'hidden' : ''} ${isCurrentPageDrmProtected ? 'drm-active' : ''}`}>
         <Document
-          file={pdfData}
+          file={pdfUrl}
           onLoadSuccess={onDocumentLoadSuccess}
           onLoadError={onDocumentLoadError}
           loading={null}
@@ -591,7 +477,7 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
             }}
           >
             <Document
-              file={pdfData}
+              file={pdfUrl}
               className="clear-document"
             >
               <div
