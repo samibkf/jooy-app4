@@ -118,10 +118,6 @@
   z-index: 60;
 }
 
-.video-element.hidden {
-  display: none;
-}
-
 @media (min-width: 768px) {
   .video-element {
     max-width: 500px;
