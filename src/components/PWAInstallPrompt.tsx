@@ -33,7 +33,9 @@ const PWAInstallPrompt: React.FC = () => {
         installed
       });
       
-      setIsInstalled(installed);
+      // FORCE TESTING: Always set to false to show prompt
+      console.log('PWAInstallPrompt: FORCING isInstalled to false for testing');
+      setIsInstalled(false);
     };
 
     checkIfInstalled();
