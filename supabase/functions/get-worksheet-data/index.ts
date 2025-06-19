@@ -66,12 +66,12 @@ serve(async (req) => {
       )
     }
 
-    // Get PDF URL from storage
+    // Get PDF URL from storage - only return if it exists
     const { data: pdfData } = await supabase.storage
       .from('private-pdfs')
       .createSignedUrl(`${worksheetId}.pdf`, 3600) // 1 hour expiry
 
-    const pdfUrl = pdfData?.signedUrl || `/pdfs/${worksheetId}.pdf`
+    const pdfUrl = pdfData?.signedUrl || null
 
     // Transform data to match expected format
     const responseData = {

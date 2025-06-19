@@ -109,8 +109,15 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
           throw new Error(data.error);
         }
 
-        // Extract metadata and PDF URL from the response
+        // Extract metadata from the response
         setWorksheetData(data.meta);
+
+        // Check if PDF URL is available
+        if (!data.pdfUrl) {
+          setError("Worksheet PDF not found in cloud storage.");
+          return;
+        }
+
         setPdfUrl(data.pdfUrl);
 
       } catch (e: any) {
@@ -126,7 +133,21 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
           
           const metadata = await metadataResponse.json();
           setWorksheetData(metadata);
-          setPdfUrl(`/pdfs/${worksheetId}.pdf`);
+          
+          // Check if local PDF exists before setting URL
+          const localPdfUrl = `/pdfs/${worksheetId}.pdf`;
+          try {
+            const pdfResponse = await fetch(localPdfUrl, { method: 'HEAD' });
+            if (pdfResponse.ok) {
+              setPdfUrl(localPdfUrl);
+            } else {
+              setError("Worksheet PDF not found.");
+              return;
+            }
+          } catch (pdfError) {
+            setError("Worksheet PDF not found.");
+            return;
+          }
         } catch (fallbackError: any) {
           console.error("Fallback also failed:", fallbackError);
           setError("Failed to load the interactive worksheet. Please try again.");
