@@ -30,17 +30,17 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     const supabase = createClient(supabaseUrl, supabaseKey)
 
-    // Fetch worksheet metadata
-    const { data: worksheet, error: worksheetError } = await supabase
-      .from('worksheets')
+    // Fetch document metadata
+    const { data: document, error: documentError } = await supabase
+      .from('documents')
       .select('*')
       .eq('id', worksheetId)
       .single()
 
-    if (worksheetError) {
-      console.error('Worksheet fetch error:', worksheetError)
+    if (documentError) {
+      console.error('Document fetch error:', documentError)
       return new Response(
-        JSON.stringify({ error: 'Worksheet not found' }),
+        JSON.stringify({ error: 'Document not found' }),
         { 
           status: 404, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
@@ -48,11 +48,11 @@ serve(async (req) => {
       )
     }
 
-    // Fetch regions for this worksheet
+    // Fetch regions for this document
     const { data: regions, error: regionsError } = await supabase
-      .from('regions')
+      .from('document_regions')
       .select('*')
-      .eq('worksheet_id', worksheetId)
+      .eq('document_id', worksheetId)
       .order('page', { ascending: true })
 
     if (regionsError) {
@@ -73,27 +73,42 @@ serve(async (req) => {
 
     const pdfUrl = pdfData?.signedUrl || `/pdfs/${worksheetId}.pdf`
 
+    // Process regions to ensure description is properly formatted
+    const processedRegions = (regions || []).map(region => {
+      let processedDescription: string[] = [];
+      
+      if (region.description) {
+        if (typeof region.description === 'string') {
+          // Split by newlines and filter out empty paragraphs
+          processedDescription = region.description
+            .split('\n')
+            .filter(paragraph => paragraph.trim() !== '');
+        }
+      }
+      
+      return {
+        id: region.id,
+        document_id: region.document_id,
+        user_id: region.user_id,
+        page: region.page,
+        x: region.x,
+        y: region.y,
+        width: region.width,
+        height: region.height,
+        type: region.type,
+        name: region.name,
+        description: processedDescription,
+        created_at: region.created_at
+      };
+    });
+
     // Transform data to match expected format
     const responseData = {
       meta: {
-        documentName: worksheet.document_name,
-        documentId: worksheet.document_id,
-        drmProtectedPages: worksheet.drm_protected_pages || [],
-        drmProtected: worksheet.drm_protected || false,
-        regions: regions?.map(region => ({
-          id: region.id,
-          document_id: worksheet.document_id,
-          user_id: 'system', // Since this is public data
-          page: region.page,
-          x: region.x,
-          y: region.y,
-          width: region.width,
-          height: region.height,
-          type: region.type,
-          name: region.name,
-          description: region.description || [],
-          created_at: region.created_at
-        })) || []
+        documentName: document.name,
+        documentId: document.id,
+        drmProtectedPages: document.drm_protected_pages || [],
+        regions: processedRegions
       },
       pdfUrl
     }

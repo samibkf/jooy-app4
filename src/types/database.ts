@@ -9,39 +9,37 @@ export type Json =
 export interface Database {
   public: {
     Tables: {
-      worksheets: {
+      documents: {
         Row: {
           id: string
-          document_name: string
-          document_id: string
-          drm_protected: boolean | null
+          user_id: string | null
+          name: string
+          created_at: string
           drm_protected_pages: number[] | null
-          created_at: string | null
-          updated_at: string | null
+          is_private: boolean
         }
         Insert: {
-          id: string
-          document_name: string
-          document_id?: string
-          drm_protected?: boolean | null
+          id?: string
+          user_id?: string | null
+          name: string
+          created_at?: string
           drm_protected_pages?: number[] | null
-          created_at?: string | null
-          updated_at?: string | null
+          is_private?: boolean
         }
         Update: {
           id?: string
-          document_name?: string
-          document_id?: string
-          drm_protected?: boolean | null
+          user_id?: string | null
+          name?: string
+          created_at?: string
           drm_protected_pages?: number[] | null
-          created_at?: string | null
-          updated_at?: string | null
+          is_private?: boolean
         }
       }
-      regions: {
+      document_regions: {
         Row: {
           id: string
-          worksheet_id: string
+          document_id: string
+          user_id: string
           page: number
           x: number
           y: number
@@ -49,13 +47,13 @@ export interface Database {
           height: number
           type: string
           name: string
-          description: string[] | null
-          created_at: string | null
-          updated_at: string | null
+          description: string | null
+          created_at: string
         }
         Insert: {
           id?: string
-          worksheet_id: string
+          document_id: string
+          user_id: string
           page: number
           x: number
           y: number
@@ -63,13 +61,13 @@ export interface Database {
           height: number
           type?: string
           name: string
-          description?: string[] | null
-          created_at?: string | null
-          updated_at?: string | null
+          description?: string | null
+          created_at?: string
         }
         Update: {
           id?: string
-          worksheet_id?: string
+          document_id?: string
+          user_id?: string
           page?: number
           x?: number
           y?: number
@@ -77,9 +75,261 @@ export interface Database {
           height?: number
           type?: string
           name?: string
-          description?: string[] | null
-          created_at?: string | null
-          updated_at?: string | null
+          description?: string | null
+          created_at?: string
+        }
+      }
+      profiles: {
+        Row: {
+          id: string
+          email: string
+          full_name: string | null
+          role: string
+          created_at: string
+          plan_id: string | null
+          credits_remaining: number
+        }
+        Insert: {
+          id: string
+          email: string
+          full_name?: string | null
+          role?: string
+          created_at?: string
+          plan_id?: string | null
+          credits_remaining?: number
+        }
+        Update: {
+          id?: string
+          email?: string
+          full_name?: string | null
+          role?: string
+          created_at?: string
+          plan_id?: string | null
+          credits_remaining?: number
+        }
+      }
+      credit_plans: {
+        Row: {
+          id: string
+          name: string
+          credits_included: number
+          price: number
+          duration_days: number | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          credits_included: number
+          price?: number
+          duration_days?: number | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          credits_included?: number
+          price?: number
+          duration_days?: number | null
+          created_at?: string
+        }
+      }
+      text_assignments: {
+        Row: {
+          id: string
+          user_id: string
+          document_id: string
+          region_id: string
+          text_title: string
+          text_content: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          document_id: string
+          region_id: string
+          text_title: string
+          text_content: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          document_id?: string
+          region_id?: string
+          text_title?: string
+          text_content?: string
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      tts_requests: {
+        Row: {
+          id: string
+          user_id: string
+          document_id: string
+          requested_pages: number[]
+          status: string
+          cost_in_credits: number
+          extra_cost_da: number | null
+          created_at: string
+          updated_at: string
+          final_audio_path: string | null
+          voice_type: string | null
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          document_id: string
+          requested_pages: number[]
+          status?: string
+          cost_in_credits: number
+          extra_cost_da?: number | null
+          created_at?: string
+          updated_at?: string
+          final_audio_path?: string | null
+          voice_type?: string | null
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          document_id?: string
+          requested_pages?: number[]
+          status?: string
+          cost_in_credits?: number
+          extra_cost_da?: number | null
+          created_at?: string
+          updated_at?: string
+          final_audio_path?: string | null
+          voice_type?: string | null
+        }
+      }
+      notifications: {
+        Row: {
+          id: string
+          user_id: string
+          message: string
+          link: string | null
+          is_read: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          message: string
+          link?: string | null
+          is_read?: boolean
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          message?: string
+          link?: string | null
+          is_read?: boolean
+          created_at?: string
+        }
+      }
+      document_texts: {
+        Row: {
+          id: string
+          user_id: string
+          document_id: string
+          title: string
+          content: string
+          created_at: string
+          page: number
+          assigned_region_id: string | null
+          order_index: number
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          document_id: string
+          title: string
+          content: string
+          created_at?: string
+          page?: number
+          assigned_region_id?: string | null
+          order_index: number
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          document_id?: string
+          title?: string
+          content?: string
+          created_at?: string
+          page?: number
+          assigned_region_id?: string | null
+          order_index?: number
+        }
+      }
+      admin_tasks: {
+        Row: {
+          id: string
+          tts_request_id: string
+          status: string
+          assigned_to: string | null
+          notes: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          tts_request_id: string
+          status?: string
+          assigned_to?: string | null
+          notes?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          tts_request_id?: string
+          status?: string
+          assigned_to?: string | null
+          notes?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      tts_audio_files: {
+        Row: {
+          id: string
+          tts_request_id: string
+          page_number: number
+          storage_path: string
+          file_size: number | null
+          duration_seconds: number | null
+          status: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          tts_request_id: string
+          page_number: number
+          storage_path: string
+          file_size?: number | null
+          duration_seconds?: number | null
+          status?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          tts_request_id?: string
+          page_number?: number
+          storage_path?: string
+          file_size?: number | null
+          duration_seconds?: number | null
+          status?: string
+          created_at?: string
+          updated_at?: string
         }
       }
     }
