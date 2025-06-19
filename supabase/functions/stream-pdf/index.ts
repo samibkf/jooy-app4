@@ -86,19 +86,19 @@ async function initializeSupabase() {
 async function checkWorksheetExists(supabase: any, worksheetId: string): Promise<boolean> {
   try {
     const { data, error } = await supabase
-      .from('worksheets')
+      .from('documents')
       .select('id')
       .eq('id', worksheetId)
       .single()
 
     if (error && error.code !== 'PGRST116') {
-      console.error('Database error checking worksheet:', error)
+      console.error('Database error checking document:', error)
       return false
     }
 
     return !!data
   } catch (error) {
-    console.error('Error checking worksheet existence:', error)
+    console.error('Error checking document existence:', error)
     return false
   }
 }
