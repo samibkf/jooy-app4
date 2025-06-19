@@ -24,6 +24,7 @@ export const useWorksheetData = (worksheetId: string) => {
         .single()
 
       if (worksheetError) {
+        console.error('Worksheet fetch error:', worksheetError)
         throw new Error(`Failed to fetch worksheet: ${worksheetError.message}`)
       }
 
@@ -34,6 +35,7 @@ export const useWorksheetData = (worksheetId: string) => {
         .order('page', { ascending: true })
 
       if (regionsError) {
+        console.error('Regions fetch error:', regionsError)
         throw new Error(`Failed to fetch regions: ${regionsError.message}`)
       }
 
@@ -80,6 +82,7 @@ export const useRegionsByPage = (worksheetId: string, pageNumber: number) => {
         .order('created_at', { ascending: true })
 
       if (error) {
+        console.error('Regions fetch error:', error)
         throw new Error(`Failed to fetch regions: ${error.message}`)
       }
 
