@@ -66,24 +66,12 @@ serve(async (req) => {
       )
     }
 
-    // Try to get PDF URL from storage first
-    let pdfUrl = `/pdfs/${worksheetId}.pdf` // Default fallback
-    
-    try {
-      const { data: pdfData, error: storageError } = await supabase.storage
-        .from('private-pdfs')
-        .createSignedUrl(`${worksheetId}.pdf`, 3600) // 1 hour expiry
+    // Get PDF URL from the pdfs bucket
+    const { data: pdfData, error: storageError } = await supabase.storage
+      .from('pdfs')
+      .createSignedUrl(`${worksheetId}.pdf`, 3600) // 1 hour expiry
 
-      if (!storageError && pdfData?.signedUrl) {
-        // Verify the PDF exists by making a HEAD request
-        const headResponse = await fetch(pdfData.signedUrl, { method: 'HEAD' })
-        if (headResponse.ok && headResponse.headers.get('content-type')?.includes('pdf')) {
-          pdfUrl = pdfData.signedUrl
-        }
-      }
-    } catch (storageError) {
-      console.warn('Storage PDF not found, using fallback:', storageError)
-    }
+    const pdfUrl = pdfData?.signedUrl || `/pdfs/${worksheetId}.pdf`
 
     // Transform data to match expected format
     const responseData = {
