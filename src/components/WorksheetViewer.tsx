@@ -217,7 +217,7 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
 
   const onDocumentLoadError = (err: Error) => {
     console.error("Error loading PDF:", err);
-    setIsLoading(false);
+    // Note: isLoading is managed by useWorksheetData hook, not locally
   };
   
   const onPageLoadSuccess = (page: any) => {
