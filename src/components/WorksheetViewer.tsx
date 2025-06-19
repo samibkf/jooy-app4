@@ -11,9 +11,10 @@ pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/b
 interface WorksheetViewerProps {
   worksheetId: string;
   pageIndex: number;
+  userId?: string; // Optional for now to maintain backward compatibility
 }
 
-const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageIndex }) => {
+const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageIndex, userId = 'anonymous' }) => {
   const [numPages, setNumPages] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -71,7 +72,7 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
       });
   }, [worksheetData, pageIndex]);
 
-  // Main data fetching effect - refactored to use Supabase Edge Function
+  // Main data fetching effect - secured to only use Supabase Edge Function
   useEffect(() => {
     const fetchWorksheetData = async () => {
       if (!worksheetId) return;
@@ -86,7 +87,7 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
         const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
         
         if (!supabaseUrl) {
-          throw new Error('Supabase URL not configured');
+          throw new Error('Supabase URL not configured. Please configure your environment variables.');
         }
 
         // Call the Supabase Edge Function
@@ -114,7 +115,7 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
 
         // Check if PDF URL is available
         if (!data.pdfUrl) {
-          setError("Worksheet PDF not found in cloud storage.");
+          setError("Worksheet PDF not found or access denied. Please ensure you have permission to view this document.");
           return;
         }
 
@@ -122,43 +123,14 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
 
       } catch (e: any) {
         console.error("Failed to fetch worksheet:", e);
-        
-        // Fallback to local JSON file if Supabase function fails
-        try {
-          console.log('Falling back to local JSON file...');
-          const metadataResponse = await fetch(`/data/${worksheetId}.json`);
-          if (!metadataResponse.ok) {
-            throw new Error(`Failed to fetch metadata: ${metadataResponse.status}`);
-          }
-          
-          const metadata = await metadataResponse.json();
-          setWorksheetData(metadata);
-          
-          // Check if local PDF exists before setting URL
-          const localPdfUrl = `/pdfs/${worksheetId}.pdf`;
-          try {
-            const pdfResponse = await fetch(localPdfUrl, { method: 'HEAD' });
-            if (pdfResponse.ok) {
-              setPdfUrl(localPdfUrl);
-            } else {
-              setError("Worksheet PDF not found.");
-              return;
-            }
-          } catch (pdfError) {
-            setError("Worksheet PDF not found.");
-            return;
-          }
-        } catch (fallbackError: any) {
-          console.error("Fallback also failed:", fallbackError);
-          setError("Failed to load the interactive worksheet. Please try again.");
-        }
+        setError("Failed to load the interactive worksheet. Please ensure you have permission to access this document and try again.");
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchWorksheetData();
-  }, [worksheetId, pageIndex]);
+  }, [worksheetId, pageIndex, userId]);
 
   // Check if current page is DRM protected
   useEffect(() => {
@@ -304,7 +276,7 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
 
   const onDocumentLoadError = (err: Error) => {
     console.error("Error loading PDF:", err);
-    setError("PDF not found or unable to load");
+    setError("PDF not found or access denied. Please ensure you have permission to view this document.");
     setIsLoading(false);
   };
   
@@ -472,7 +444,7 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
     return (
       <div className="worksheet-container">
         <div className="worksheet-error">
-          <p>Worksheet not found</p>
+          <p>Worksheet not found or access denied</p>
           <Button onClick={() => window.location.href = '/'}>
             Return to Scanner
           </Button>
