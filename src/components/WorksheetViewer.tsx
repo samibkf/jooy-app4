@@ -4,6 +4,7 @@ import "../styles/Worksheet.css";
 import { toast } from "@/components/ui/use-toast";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, Sparkles } from "lucide-react";
+import { supabase } from '../lib/supabaseClient';
 import type { WorksheetMetadata, RegionData } from "@/types/worksheet";
 
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.js`;
@@ -11,10 +12,9 @@ pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/b
 interface WorksheetViewerProps {
   worksheetId: string;
   pageIndex: number;
-  userId?: string; // Optional for now to maintain backward compatibility
 }
 
-const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageIndex, userId = 'anonymous' }) => {
+const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageIndex }) => {
   const [numPages, setNumPages] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -72,9 +72,9 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
       });
   }, [worksheetData, pageIndex]);
 
-  // Main data fetching effect - secured to only use Supabase Edge Function
+  // Main data fetching effect
   useEffect(() => {
-    const fetchWorksheetData = async () => {
+    const fetchWorksheet = async () => {
       if (!worksheetId) return;
       
       setIsLoading(true);
@@ -83,54 +83,27 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
       setPdfUrl(null);
 
       try {
-        // Get Supabase URL from environment
-        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-        
-        if (!supabaseUrl) {
-          throw new Error('Supabase URL not configured. Please configure your environment variables.');
-        }
-
-        // Call the Supabase Edge Function
-        const response = await fetch(`${supabaseUrl}/functions/v1/get-worksheet-data`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-          },
-          body: JSON.stringify({ worksheetId }),
+        const { data, error: functionError } = await supabase.functions.invoke('get-worksheet-data', {
+          body: { worksheetId },
         });
 
-        if (!response.ok) {
-          throw new Error(`Failed to fetch worksheet data: ${response.status}`);
+        if (functionError) { 
+          throw functionError; 
         }
 
-        const data = await response.json();
-        
-        if (data.error) {
-          throw new Error(data.error);
-        }
-
-        // Extract metadata from the response
         setWorksheetData(data.meta);
-
-        // Check if PDF URL is available
-        if (!data.pdfUrl) {
-          setError("Worksheet PDF not found or access denied. Please ensure you have permission to view this document.");
-          return;
-        }
-
         setPdfUrl(data.pdfUrl);
 
       } catch (e: any) {
         console.error("Failed to fetch worksheet:", e);
-        setError("Failed to load the interactive worksheet. Please ensure you have permission to access this document and try again.");
+        setError("Failed to load the interactive worksheet. Please try again.");
       } finally {
         setIsLoading(false);
       }
     };
 
-    fetchWorksheetData();
-  }, [worksheetId, pageIndex, userId]);
+    fetchWorksheet();
+  }, [worksheetId, pageIndex]);
 
   // Check if current page is DRM protected
   useEffect(() => {
@@ -276,7 +249,7 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
 
   const onDocumentLoadError = (err: Error) => {
     console.error("Error loading PDF:", err);
-    setError("PDF not found or access denied. Please ensure you have permission to view this document.");
+    setError("PDF not found or unable to load");
     setIsLoading(false);
   };
   
@@ -444,7 +417,7 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
     return (
       <div className="worksheet-container">
         <div className="worksheet-error">
-          <p>Worksheet not found or access denied</p>
+          <p>Worksheet not found</p>
           <Button onClick={() => window.location.href = '/'}>
             Return to Scanner
           </Button>
@@ -472,23 +445,21 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
       )}
       
       <div className={`worksheet-pdf-container ${isTextMode ? 'hidden' : ''} ${isCurrentPageDrmProtected ? 'drm-active' : ''}`}>
-        {pdfUrl && (
-          <Document
-            file={pdfUrl}
-            onLoadSuccess={onDocumentLoadSuccess}
-            onLoadError={onDocumentLoadError}
-            loading={null}
-          >
-            <Page
-              pageNumber={pageIndex}
-              renderTextLayer={false}
-              renderAnnotationLayer={false}
-              className={`worksheet-page ${isCurrentPageDrmProtected ? 'blurred' : ''}`}
-              width={window.innerWidth > 768 ? 600 : undefined}
-              onLoadSuccess={onPageLoadSuccess}
-            />
-          </Document>
-        )}
+        <Document
+          file={pdfUrl}
+          onLoadSuccess={onDocumentLoadSuccess}
+          onLoadError={onDocumentLoadError}
+          loading={null}
+        >
+          <Page
+            pageNumber={pageIndex}
+            renderTextLayer={false}
+            renderAnnotationLayer={false}
+            className={`worksheet-page ${isCurrentPageDrmProtected ? 'blurred' : ''}`}
+            width={window.innerWidth > 768 ? 600 : undefined}
+            onLoadSuccess={onPageLoadSuccess}
+          />
+        </Document>
         
         {isCurrentPageDrmProtected && !isTextMode && regions.map((region) => (
           <div
@@ -505,30 +476,28 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
               border: '1px solid rgba(0,0,0,0.1)',
             }}
           >
-            {pdfUrl && (
-              <Document
-                file={pdfUrl}
-                className="clear-document"
+            <Document
+              file={pdfUrl}
+              className="clear-document"
+            >
+              <div
+                style={{
+                  position: 'absolute',
+                  left: `-${region.x * scaleFactor}px`,
+                  top: `-${region.y * scaleFactor}px`,
+                  width: `${pdfDimensions.width * scaleFactor}px`,
+                  height: `${pdfDimensions.height * scaleFactor}px`,
+                }}
               >
-                <div
-                  style={{
-                    position: 'absolute',
-                    left: `-${region.x * scaleFactor}px`,
-                    top: `-${region.y * scaleFactor}px`,
-                    width: `${pdfDimensions.width * scaleFactor}px`,
-                    height: `${pdfDimensions.height * scaleFactor}px`,
-                  }}
-                >
-                  <Page
-                    pageNumber={pageIndex}
-                    renderTextLayer={false}
-                    renderAnnotationLayer={false}
-                    width={window.innerWidth > 768 ? 600 : undefined}
-                    className="clear-page"
-                  />
-                </div>
-              </Document>
-            )}
+                <Page
+                  pageNumber={pageIndex}
+                  renderTextLayer={false}
+                  renderAnnotationLayer={false}
+                  width={window.innerWidth > 768 ? 600 : undefined}
+                  className="clear-page"
+                />
+              </div>
+            </Document>
           </div>
         ))}
         
