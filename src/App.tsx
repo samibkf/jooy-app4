@@ -7,6 +7,7 @@ import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import QrScannerPage from "./pages/QrScannerPage";
 import WorksheetPage from "./pages/WorksheetPage";
+import ChatPage from "./pages/ChatPage";
 import QRScannerButton from "./components/QRScannerButton";
 import FullscreenButton from "./components/FullscreenButton";
 import PWAInstallPrompt from "./components/PWAInstallPrompt";
@@ -22,12 +23,14 @@ const App = () => (
         <Routes>
           <Route path="/" element={<QrScannerPage />} />
           <Route path="/worksheet/:id/:n" element={<WorksheetPage />} />
+          <Route path="/chat/:worksheetId" element={<ChatPage />} />
           <Route path="/home" element={<Index />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
         <FullscreenButton />
         <Routes>
           <Route path="/" element={null} />
+          <Route path="/chat/:worksheetId" element={null} />
           <Route path="*" element={<QRScannerButton />} />
         </Routes>
         <PWAInstallPrompt />

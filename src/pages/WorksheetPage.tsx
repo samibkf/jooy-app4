@@ -1,6 +1,7 @@
 import React from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import WorksheetViewer from "@/components/WorksheetViewer";
+import AIChatButton from "@/components/AIChatButton";
 import { Button } from "@/components/ui/button";
 
 const WorksheetPage: React.FC = () => {
@@ -32,7 +33,7 @@ const WorksheetPage: React.FC = () => {
         <h1 className="text-2xl font-bold text-red-500 mb-4">
           Invalid page number
         </h1>
-        <Button onClick={goBack} className="bg-gradient-to-r from-blue-500 to-blue-700 hover:from-blue-600 hover:to-blue-800 text-white">
+        <Button onClick={goBack} className="bg-gradient-to-r from-blue-500 to-blue-800 text-white">
           Return to Scanner
         </Button>
       </div>
@@ -41,6 +42,7 @@ const WorksheetPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <AIChatButton worksheetId={id} />
       <WorksheetViewer worksheetId={id} pageIndex={pageIndex} />
     </div>
   );
