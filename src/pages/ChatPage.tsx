@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -19,10 +19,14 @@ interface Message {
 const ChatPage: React.FC = () => {
   const { worksheetId } = useParams<{ worksheetId: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  
+  // Get page image from navigation state
+  const pageImage = location.state?.pageImage;
   
   // Fetch worksheet data for context
   const { data: worksheetData, isLoading: isWorksheetLoading, error: worksheetError } = useWorksheetData(worksheetId || "");
@@ -41,7 +45,7 @@ const ChatPage: React.FC = () => {
       const welcomeMessage: Message = {
         id: Date.now().toString(),
         role: 'assistant',
-        content: `Hello! I'm here to help you with the worksheet "${worksheetData.documentName}". I can answer questions about the content, explain concepts, or help you understand the material better. What would you like to know?`,
+        content: `Hello! I'm here to help you with the worksheet "${worksheetData.documentName}". I can see the current page and answer questions about the content, explain concepts, or help you understand the material better. What would you like to know?`,
         timestamp: new Date()
       };
       setMessages([welcomeMessage]);
@@ -53,6 +57,10 @@ const ChatPage: React.FC = () => {
     
     let context = `You are an AI assistant helping a student with a worksheet titled "${worksheetData.documentName}". `;
     
+    if (pageImage) {
+      context += "I'm providing you with an image of the current worksheet page that the student is viewing. Please analyze this image to understand the visual content and provide contextual help. ";
+    }
+    
     if (worksheetData.regions && worksheetData.regions.length > 0) {
       context += "The worksheet contains the following interactive regions:\n\n";
       worksheetData.regions.forEach((region, index) => {
@@ -63,7 +71,7 @@ const ChatPage: React.FC = () => {
       });
     }
     
-    context += "Please provide helpful, educational responses that assist the student in understanding the worksheet content. Be encouraging and explain concepts clearly.";
+    context += "Please provide helpful, educational responses that assist the student in understanding the worksheet content. Be encouraging and explain concepts clearly. Use the visual information from the image to provide specific and relevant guidance.";
     
     return context;
   };
@@ -114,12 +122,27 @@ const ChatPage: React.FC = () => {
       const contextPrompt = generateContextPrompt();
       const fullPrompt = `${contextPrompt}\n\nUser question: ${userMessage.content}`;
 
+      // Prepare the message parts
+      const messageParts: any[] = [{ text: fullPrompt }];
+
+      // Add image if available
+      if (pageImage) {
+        // Remove the data URL prefix to get just the base64 data
+        const base64Data = pageImage.replace(/^data:image\/[a-z]+;base64,/, '');
+        messageParts.push({
+          inlineData: {
+            data: base64Data,
+            mimeType: 'image/jpeg'
+          }
+        });
+      }
+
       // Start chat with history
       const chat = model.startChat({
         history: conversationHistory.slice(0, -1), // Exclude the current message as it will be sent separately
       });
 
-      const result = await chat.sendMessage(fullPrompt);
+      const result = await chat.sendMessage(messageParts);
       const response = await result.response;
       const aiResponse = response.text();
 
@@ -202,6 +225,9 @@ const ChatPage: React.FC = () => {
             <h1 className="text-xl font-semibold">AI Chat Assistant</h1>
             {worksheetData && (
               <p className="text-sm text-gray-600">{worksheetData.documentName}</p>
+            )}
+            {pageImage && (
+              <p className="text-xs text-green-600">✓ Visual context available</p>
             )}
           </div>
         </div>

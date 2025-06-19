@@ -12,9 +12,10 @@ pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/b
 interface WorksheetViewerProps {
   worksheetId: string;
   pageIndex: number;
+  onPageRendered?: (canvas: HTMLCanvasElement) => void;
 }
 
-const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageIndex }) => {
+const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageIndex, onPageRendered }) => {
   const [numPages, setNumPages] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -272,6 +273,11 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
         
         const newScaleFactor = canvasRect.width / width;
         setScaleFactor(newScaleFactor);
+        
+        // Call the onPageRendered callback with the canvas element
+        if (onPageRendered && pdfCanvas) {
+          onPageRendered(pdfCanvas);
+        }
       }
     }, 100);
   };

@@ -6,9 +6,10 @@ import { toast } from "@/components/ui/use-toast";
 
 interface AIChatButtonProps {
   worksheetId: string;
+  pageImage?: string | null;
 }
 
-const AIChatButton: React.FC<AIChatButtonProps> = ({ worksheetId }) => {
+const AIChatButton: React.FC<AIChatButtonProps> = ({ worksheetId, pageImage }) => {
   const navigate = useNavigate();
 
   const handleChatClick = () => {
@@ -40,8 +41,10 @@ const AIChatButton: React.FC<AIChatButtonProps> = ({ worksheetId }) => {
       });
     }
     
-    // Navigate to chat page
-    navigate(`/chat/${worksheetId}`);
+    // Navigate to chat page with page image data
+    navigate(`/chat/${worksheetId}`, {
+      state: { pageImage }
+    });
   };
 
   return (
