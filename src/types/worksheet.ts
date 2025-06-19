@@ -9,7 +9,7 @@ export interface RegionData {
   height: number;
   type: string;
   name: string;
-  description: string | string[] | null;
+  description: string[];
   created_at: string;
 }
 
@@ -18,4 +18,5 @@ export interface WorksheetMetadata {
   documentId: string;
   regions: RegionData[];
   drmProtectedPages?: number[];
+  drmProtected?: boolean;
 }

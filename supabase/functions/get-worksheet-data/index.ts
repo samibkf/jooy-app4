@@ -30,17 +30,17 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     const supabase = createClient(supabaseUrl, supabaseKey)
 
-    // Fetch document metadata (using documents table instead of worksheets)
-    const { data: document, error: documentError } = await supabase
-      .from('documents')
+    // Fetch worksheet metadata
+    const { data: worksheet, error: worksheetError } = await supabase
+      .from('worksheets')
       .select('*')
       .eq('id', worksheetId)
       .single()
 
-    if (documentError) {
-      console.error('Document fetch error:', documentError)
+    if (worksheetError) {
+      console.error('Worksheet fetch error:', worksheetError)
       return new Response(
-        JSON.stringify({ error: 'Document not found' }),
+        JSON.stringify({ error: 'Worksheet not found' }),
         { 
           status: 404, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
@@ -48,11 +48,11 @@ serve(async (req) => {
       )
     }
 
-    // Fetch regions for this document (using document_regions table instead of regions)
+    // Fetch regions for this worksheet
     const { data: regions, error: regionsError } = await supabase
-      .from('document_regions')
+      .from('regions')
       .select('*')
-      .eq('document_id', worksheetId)
+      .eq('worksheet_id', worksheetId)
       .order('page', { ascending: true })
 
     if (regionsError) {
@@ -66,9 +66,9 @@ serve(async (req) => {
       )
     }
 
-    // Get PDF URL from the pdfs bucket
-    const { data: pdfData, error: storageError } = await supabase.storage
-      .from('pdfs')
+    // Get PDF URL from storage
+    const { data: pdfData } = await supabase.storage
+      .from('private-pdfs')
       .createSignedUrl(`${worksheetId}.pdf`, 3600) // 1 hour expiry
 
     const pdfUrl = pdfData?.signedUrl || `/pdfs/${worksheetId}.pdf`
@@ -76,14 +76,14 @@ serve(async (req) => {
     // Transform data to match expected format
     const responseData = {
       meta: {
-        documentName: document.name,
-        documentId: document.id,
-        drmProtectedPages: document.drm_protected_pages || [],
-        drmProtected: document.is_private || false,
+        documentName: worksheet.document_name,
+        documentId: worksheet.document_id,
+        drmProtectedPages: worksheet.drm_protected_pages || [],
+        drmProtected: worksheet.drm_protected || false,
         regions: regions?.map(region => ({
           id: region.id,
-          document_id: document.id,
-          user_id: region.user_id,
+          document_id: worksheet.document_id,
+          user_id: 'system', // Since this is public data
           page: region.page,
           x: region.x,
           y: region.y,
@@ -91,7 +91,7 @@ serve(async (req) => {
           height: region.height,
           type: region.type,
           name: region.name,
-          description: region.description ? (Array.isArray(region.description) ? region.description : [region.description]) : [],
+          description: region.description || [],
           created_at: region.created_at
         })) || []
       },

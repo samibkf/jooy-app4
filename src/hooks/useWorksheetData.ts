@@ -17,41 +17,32 @@ export const useWorksheetData = (worksheetId: string) => {
       }
 
       // Use Supabase if configured
-      const { data: document, error: documentError } = await supabase
-        .from('documents')
+      const { data: worksheet, error: worksheetError } = await supabase
+        .from('worksheets')
         .select('*')
         .eq('id', worksheetId)
         .single()
 
-      if (documentError) {
-        throw new Error(`Failed to fetch document: ${documentError.message}`)
+      if (worksheetError) {
+        throw new Error(`Failed to fetch worksheet: ${worksheetError.message}`)
       }
 
       const { data: regions, error: regionsError } = await supabase
-        .from('document_regions')
+        .from('regions')
         .select('*')
-        .eq('document_id', worksheetId)
+        .eq('worksheet_id', worksheetId)
         .order('page', { ascending: true })
 
       if (regionsError) {
         throw new Error(`Failed to fetch regions: ${regionsError.message}`)
       }
 
-      // Process regions to ensure description is properly formatted
-      const processedRegions = (regions || []).map(region => ({
-        ...region,
-        description: region.description ? 
-          (typeof region.description === 'string' ? 
-            region.description.split('\n').filter(p => p.trim() !== '') : 
-            region.description) : 
-          []
-      }))
-
       return {
-        documentName: document.name,
-        documentId: document.id,
-        drmProtectedPages: document.drm_protected_pages || [],
-        regions: processedRegions
+        documentName: worksheet.document_name,
+        documentId: worksheet.document_id,
+        drmProtectedPages: worksheet.drm_protected_pages || [],
+        drmProtected: worksheet.drm_protected || false,
+        regions: regions || []
       }
     },
     enabled: !!worksheetId,
@@ -82,9 +73,9 @@ export const useRegionsByPage = (worksheetId: string, pageNumber: number) => {
 
       // Use Supabase if configured
       const { data, error } = await supabase
-        .from('document_regions')
+        .from('regions')
         .select('*')
-        .eq('document_id', worksheetId)
+        .eq('worksheet_id', worksheetId)
         .eq('page', pageNumber)
         .order('created_at', { ascending: true })
 
@@ -92,17 +83,7 @@ export const useRegionsByPage = (worksheetId: string, pageNumber: number) => {
         throw new Error(`Failed to fetch regions: ${error.message}`)
       }
 
-      // Process regions to ensure description is properly formatted
-      const processedRegions = (data || []).map(region => ({
-        ...region,
-        description: region.description ? 
-          (typeof region.description === 'string' ? 
-            region.description.split('\n').filter(p => p.trim() !== '') : 
-            region.description) : 
-          []
-      }))
-
-      return processedRegions
+      return data || []
     },
     enabled: !!worksheetId && !!pageNumber,
     staleTime: 5 * 60 * 1000, // 5 minutes
