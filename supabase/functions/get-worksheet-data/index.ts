@@ -108,34 +108,34 @@ async function initializeSupabase() {
 async function fetchWorksheetData(supabase: any, worksheetId: string) {
   console.log(`Fetching worksheet data for ID: ${worksheetId}`)
 
-  // Fetch worksheet metadata
-  const { data: worksheet, error: worksheetError } = await supabase
-    .from('worksheets')
+  // Fetch document metadata (using documents table instead of worksheets)
+  const { data: document, error: documentError } = await supabase
+    .from('documents')
     .select('*')
     .eq('id', worksheetId)
     .single()
 
-  if (worksheetError) {
-    console.error('Worksheet fetch error:', worksheetError)
+  if (documentError) {
+    console.error('Document fetch error:', documentError)
     
-    if (worksheetError.code === 'PGRST116') {
-      throw createErrorResponse('Worksheet not found', 404, `No worksheet found with ID: ${worksheetId}`)
+    if (documentError.code === 'PGRST116') {
+      throw createErrorResponse('Document not found', 404, `No document found with ID: ${worksheetId}`)
     }
     
-    throw createErrorResponse('Database error while fetching worksheet', 500, worksheetError.message)
+    throw createErrorResponse('Database error while fetching document', 500, documentError.message)
   }
 
-  if (!worksheet) {
-    throw createErrorResponse('Worksheet not found', 404, `No worksheet found with ID: ${worksheetId}`)
+  if (!document) {
+    throw createErrorResponse('Document not found', 404, `No document found with ID: ${worksheetId}`)
   }
 
-  console.log(`Found worksheet: ${worksheet.document_name}`)
+  console.log(`Found document: ${document.name}`)
 
-  // Fetch regions for this worksheet
+  // Fetch regions for this document (using document_regions table instead of regions)
   const { data: regions, error: regionsError } = await supabase
-    .from('regions')
+    .from('document_regions')
     .select('*')
-    .eq('worksheet_id', worksheetId)
+    .eq('document_id', worksheetId)
     .order('page', { ascending: true })
     .order('created_at', { ascending: true })
 
@@ -144,9 +144,9 @@ async function fetchWorksheetData(supabase: any, worksheetId: string) {
     throw createErrorResponse('Database error while fetching regions', 500, regionsError.message)
   }
 
-  console.log(`Found ${regions?.length || 0} regions for worksheet`)
+  console.log(`Found ${regions?.length || 0} regions for document`)
 
-  return { worksheet, regions: regions || [] }
+  return { document, regions: regions || [] }
 }
 
 async function generatePdfUrl(supabase: any, worksheetId: string): Promise<string> {
@@ -172,17 +172,17 @@ async function generatePdfUrl(supabase: any, worksheetId: string): Promise<strin
   return publicUrl
 }
 
-function transformWorksheetData(worksheet: any, regions: any[], pdfUrl: string): WorksheetResponse {
+function transformWorksheetData(document: any, regions: any[], pdfUrl: string): WorksheetResponse {
   return {
     meta: {
-      documentName: worksheet.document_name || 'Unknown Document',
-      documentId: worksheet.document_id || worksheet.id,
-      drmProtectedPages: Array.isArray(worksheet.drm_protected_pages) ? worksheet.drm_protected_pages : [],
-      drmProtected: Boolean(worksheet.drm_protected),
+      documentName: document.name || 'Unknown Document',
+      documentId: document.id,
+      drmProtectedPages: Array.isArray(document.drm_protected_pages) ? document.drm_protected_pages : [],
+      drmProtected: Boolean(document.is_private),
       regions: regions.map(region => ({
         id: region.id,
-        document_id: worksheet.document_id || worksheet.id,
-        user_id: 'system', // Since this is public data
+        document_id: document.id,
+        user_id: region.user_id || 'system',
         page: region.page,
         x: region.x,
         y: region.y,
@@ -190,7 +190,7 @@ function transformWorksheetData(worksheet: any, regions: any[], pdfUrl: string):
         height: region.height,
         type: region.type || 'area',
         name: region.name,
-        description: Array.isArray(region.description) ? region.description : [],
+        description: region.description ? (Array.isArray(region.description) ? region.description : [region.description]) : [],
         created_at: region.created_at || new Date().toISOString()
       }))
     },
@@ -213,16 +213,16 @@ serve(async (req: Request) => {
     // Initialize Supabase
     const supabase = await initializeSupabase()
 
-    // Fetch worksheet and regions data
-    const { worksheet, regions } = await fetchWorksheetData(supabase, worksheetId)
+    // Fetch document and regions data
+    const { document, regions } = await fetchWorksheetData(supabase, worksheetId)
 
     // Generate PDF URL
     const pdfUrl = await generatePdfUrl(supabase, worksheetId)
 
     // Transform and return data
-    const responseData = transformWorksheetData(worksheet, regions, pdfUrl)
+    const responseData = transformWorksheetData(document, regions, pdfUrl)
     
-    console.log(`Successfully processed worksheet ${worksheetId}`)
+    console.log(`Successfully processed document ${worksheetId}`)
     return createSuccessResponse(responseData)
 
   } catch (error) {
