@@ -4,7 +4,6 @@ import "../styles/Worksheet.css";
 import { toast } from "@/components/ui/use-toast";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, Sparkles } from "lucide-react";
-import { supabase } from '../lib/supabaseClient';
 import type { WorksheetMetadata, RegionData } from "@/types/worksheet";
 
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.js`;
@@ -12,10 +11,9 @@ pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/b
 interface WorksheetViewerProps {
   worksheetId: string;
   pageIndex: number;
-  userId?: string; // Optional for now to maintain backward compatibility
 }
 
-const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageIndex, userId = 'anonymous' }) => {
+const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageIndex }) => {
   const [numPages, setNumPages] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -73,7 +71,7 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
       });
   }, [worksheetData, pageIndex]);
 
-  // Main data fetching effect - refactored to use stream-pdf endpoint
+  // Main data fetching effect - refactored to use Supabase Edge Function
   useEffect(() => {
     const fetchWorksheetData = async () => {
       if (!worksheetId) return;
@@ -84,35 +82,62 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
       setPdfUrl(null);
 
       try {
-        // Step 1: Construct the PDF streaming URL using the new stream-pdf endpoint
+        // Get Supabase URL from environment
         const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-        if (supabaseUrl) {
-          const streamPdfUrl = `${supabaseUrl}/functions/v1/stream-pdf?id=${encodeURIComponent(worksheetId)}&userId=${encodeURIComponent(userId)}`;
-          setPdfUrl(streamPdfUrl);
-        } else {
-          // Fallback to local PDF if Supabase is not configured
-          setPdfUrl(`/pdfs/${worksheetId}.pdf`);
+        
+        if (!supabaseUrl) {
+          throw new Error('Supabase URL not configured');
         }
 
-        // Step 2: Fetch metadata separately (this logic remains the same)
-        const metadataResponse = await fetch(`/data/${worksheetId}.json`);
-        if (!metadataResponse.ok) {
-          throw new Error(`Failed to fetch metadata: ${metadataResponse.status}`);
+        // Call the Supabase Edge Function
+        const response = await fetch(`${supabaseUrl}/functions/v1/get-worksheet-data`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          },
+          body: JSON.stringify({ worksheetId }),
+        });
+
+        if (!response.ok) {
+          throw new Error(`Failed to fetch worksheet data: ${response.status}`);
         }
+
+        const data = await response.json();
         
-        const metadata = await metadataResponse.json();
-        setWorksheetData(metadata);
+        if (data.error) {
+          throw new Error(data.error);
+        }
+
+        // Extract metadata and PDF URL from the response
+        setWorksheetData(data.meta);
+        setPdfUrl(data.pdfUrl);
 
       } catch (e: any) {
         console.error("Failed to fetch worksheet:", e);
-        setError("Failed to load the interactive worksheet. Please try again.");
+        
+        // Fallback to local JSON file if Supabase function fails
+        try {
+          console.log('Falling back to local JSON file...');
+          const metadataResponse = await fetch(`/data/${worksheetId}.json`);
+          if (!metadataResponse.ok) {
+            throw new Error(`Failed to fetch metadata: ${metadataResponse.status}`);
+          }
+          
+          const metadata = await metadataResponse.json();
+          setWorksheetData(metadata);
+          setPdfUrl(`/pdfs/${worksheetId}.pdf`);
+        } catch (fallbackError: any) {
+          console.error("Fallback also failed:", fallbackError);
+          setError("Failed to load the interactive worksheet. Please try again.");
+        }
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchWorksheetData();
-  }, [worksheetId, pageIndex, userId]);
+  }, [worksheetId, pageIndex]);
 
   // Check if current page is DRM protected
   useEffect(() => {
