@@ -2,55 +2,54 @@ import { useQuery } from '@tanstack/react-query'
 import { supabase, shouldUseSupabase } from '@/lib/supabase'
 import type { WorksheetMetadata } from '@/types/worksheet'
 
-interface WorksheetDataResponse {
-  meta: WorksheetMetadata
-  pdfUrl: string
-}
-
 export const useWorksheetData = (worksheetId: string) => {
   return useQuery({
     queryKey: ['worksheet', worksheetId],
-    queryFn: async (): Promise<WorksheetDataResponse> => {
-      // If Supabase is configured, try the edge function first
-      if (shouldUseSupabase()) {
-        try {
-          const { data, error: functionError } = await supabase.functions.invoke('get-worksheet-data', {
-            body: { worksheetId },
-          })
-
-          if (functionError) {
-            throw functionError
-          }
-
-          return {
-            meta: data.meta,
-            pdfUrl: data.pdfUrl
-          }
-        } catch (error) {
-          console.log('Supabase edge function failed, falling back to JSON:', error)
-          // Fall through to JSON fallback
+    queryFn: async (): Promise<WorksheetMetadata> => {
+      // If Supabase is not configured, fallback to JSON files
+      if (!shouldUseSupabase()) {
+        console.log('Supabase not configured, using JSON fallback')
+        const response = await fetch(`/data/${worksheetId}.json`)
+        if (!response.ok) {
+          throw new Error(`Failed to fetch worksheet data: ${response.status}`)
         }
+        return response.json()
       }
 
-      // Fallback to JSON files
-      console.log('Using JSON fallback for worksheet data')
-      const response = await fetch(`/data/${worksheetId}.json`)
-      if (!response.ok) {
-        throw new Error(`Failed to fetch worksheet data: ${response.status}`)
+      // Use Supabase if configured
+      const { data: worksheet, error: worksheetError } = await supabase
+        .from('worksheets')
+        .select('*')
+        .eq('id', worksheetId)
+        .single()
+
+      if (worksheetError) {
+        throw new Error(`Failed to fetch worksheet: ${worksheetError.message}`)
       }
-      
-      const worksheetData = await response.json()
-      
+
+      const { data: regions, error: regionsError } = await supabase
+        .from('regions')
+        .select('*')
+        .eq('worksheet_id', worksheetId)
+        .order('page', { ascending: true })
+
+      if (regionsError) {
+        throw new Error(`Failed to fetch regions: ${regionsError.message}`)
+      }
+
       return {
-        meta: worksheetData,
-        pdfUrl: `/pdfs/${worksheetId}.pdf`
+        documentName: worksheet.document_name,
+        documentId: worksheet.document_id,
+        drmProtectedPages: worksheet.drm_protected_pages || [],
+        drmProtected: worksheet.drm_protected || false,
+        regions: regions || []
       }
     },
     enabled: !!worksheetId,
     staleTime: 5 * 60 * 1000, // 5 minutes
     retry: (failureCount, error) => {
-      // Don't retry if it's a 404
-      if (error.message.includes('404')) {
+      // Don't retry if it's a 404 or if Supabase is not configured
+      if (error.message.includes('404') || !shouldUseSupabase()) {
         return false
       }
       return failureCount < 3
