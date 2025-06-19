@@ -12,9 +12,10 @@ pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/b
 interface WorksheetViewerProps {
   worksheetId: string;
   pageIndex: number;
+  userId?: string; // Optional for now to maintain backward compatibility
 }
 
-const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageIndex }) => {
+const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageIndex, userId = 'anonymous' }) => {
   const [numPages, setNumPages] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -72,9 +73,9 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
       });
   }, [worksheetData, pageIndex]);
 
-  // Main data fetching effect
+  // Main data fetching effect - refactored to use stream-pdf endpoint
   useEffect(() => {
-    const fetchWorksheet = async () => {
+    const fetchWorksheetData = async () => {
       if (!worksheetId) return;
       
       setIsLoading(true);
@@ -83,16 +84,24 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
       setPdfUrl(null);
 
       try {
-        const { data, error: functionError } = await supabase.functions.invoke('get-worksheet-data', {
-          body: { worksheetId },
-        });
-
-        if (functionError) { 
-          throw functionError; 
+        // Step 1: Construct the PDF streaming URL using the new stream-pdf endpoint
+        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+        if (supabaseUrl) {
+          const streamPdfUrl = `${supabaseUrl}/functions/v1/stream-pdf?id=${encodeURIComponent(worksheetId)}&userId=${encodeURIComponent(userId)}`;
+          setPdfUrl(streamPdfUrl);
+        } else {
+          // Fallback to local PDF if Supabase is not configured
+          setPdfUrl(`/pdfs/${worksheetId}.pdf`);
         }
 
-        setWorksheetData(data.meta);
-        setPdfUrl(data.pdfUrl);
+        // Step 2: Fetch metadata separately (this logic remains the same)
+        const metadataResponse = await fetch(`/data/${worksheetId}.json`);
+        if (!metadataResponse.ok) {
+          throw new Error(`Failed to fetch metadata: ${metadataResponse.status}`);
+        }
+        
+        const metadata = await metadataResponse.json();
+        setWorksheetData(metadata);
 
       } catch (e: any) {
         console.error("Failed to fetch worksheet:", e);
@@ -102,8 +111,8 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
       }
     };
 
-    fetchWorksheet();
-  }, [worksheetId, pageIndex]);
+    fetchWorksheetData();
+  }, [worksheetId, pageIndex, userId]);
 
   // Check if current page is DRM protected
   useEffect(() => {
@@ -445,21 +454,23 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
       )}
       
       <div className={`worksheet-pdf-container ${isTextMode ? 'hidden' : ''} ${isCurrentPageDrmProtected ? 'drm-active' : ''}`}>
-        <Document
-          file={pdfUrl}
-          onLoadSuccess={onDocumentLoadSuccess}
-          onLoadError={onDocumentLoadError}
-          loading={null}
-        >
-          <Page
-            pageNumber={pageIndex}
-            renderTextLayer={false}
-            renderAnnotationLayer={false}
-            className={`worksheet-page ${isCurrentPageDrmProtected ? 'blurred' : ''}`}
-            width={window.innerWidth > 768 ? 600 : undefined}
-            onLoadSuccess={onPageLoadSuccess}
-          />
-        </Document>
+        {pdfUrl && (
+          <Document
+            file={pdfUrl}
+            onLoadSuccess={onDocumentLoadSuccess}
+            onLoadError={onDocumentLoadError}
+            loading={null}
+          >
+            <Page
+              pageNumber={pageIndex}
+              renderTextLayer={false}
+              renderAnnotationLayer={false}
+              className={`worksheet-page ${isCurrentPageDrmProtected ? 'blurred' : ''}`}
+              width={window.innerWidth > 768 ? 600 : undefined}
+              onLoadSuccess={onPageLoadSuccess}
+            />
+          </Document>
+        )}
         
         {isCurrentPageDrmProtected && !isTextMode && regions.map((region) => (
           <div
@@ -476,28 +487,30 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
               border: '1px solid rgba(0,0,0,0.1)',
             }}
           >
-            <Document
-              file={pdfUrl}
-              className="clear-document"
-            >
-              <div
-                style={{
-                  position: 'absolute',
-                  left: `-${region.x * scaleFactor}px`,
-                  top: `-${region.y * scaleFactor}px`,
-                  width: `${pdfDimensions.width * scaleFactor}px`,
-                  height: `${pdfDimensions.height * scaleFactor}px`,
-                }}
+            {pdfUrl && (
+              <Document
+                file={pdfUrl}
+                className="clear-document"
               >
-                <Page
-                  pageNumber={pageIndex}
-                  renderTextLayer={false}
-                  renderAnnotationLayer={false}
-                  width={window.innerWidth > 768 ? 600 : undefined}
-                  className="clear-page"
-                />
-              </div>
-            </Document>
+                <div
+                  style={{
+                    position: 'absolute',
+                    left: `-${region.x * scaleFactor}px`,
+                    top: `-${region.y * scaleFactor}px`,
+                    width: `${pdfDimensions.width * scaleFactor}px`,
+                    height: `${pdfDimensions.height * scaleFactor}px`,
+                  }}
+                >
+                  <Page
+                    pageNumber={pageIndex}
+                    renderTextLayer={false}
+                    renderAnnotationLayer={false}
+                    width={window.innerWidth > 768 ? 600 : undefined}
+                    className="clear-page"
+                  />
+                </div>
+              </Document>
+            )}
           </div>
         ))}
         
