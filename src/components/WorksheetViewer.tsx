@@ -12,10 +12,9 @@ pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/b
 interface WorksheetViewerProps {
   worksheetId: string;
   pageIndex: number;
-  userId: string;
 }
 
-const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageIndex, userId }) => {
+const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageIndex }) => {
   const [numPages, setNumPages] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -76,7 +75,7 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
   // Main data fetching effect
   useEffect(() => {
     const fetchWorksheet = async () => {
-      if (!worksheetId || !userId) return;
+      if (!worksheetId) return;
       
       setIsLoading(true);
       setError(null);
@@ -84,22 +83,16 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
       setPdfUrl(null);
 
       try {
-        // Step 1: Construct the URL to our new streaming function
-        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-        if (!supabaseUrl) {
-          throw new Error('Supabase URL not configured');
+        const { data, error: functionError } = await supabase.functions.invoke('get-worksheet-data', {
+          body: { worksheetId },
+        });
+
+        if (functionError) { 
+          throw functionError; 
         }
 
-        const streamPdfUrl = `${supabaseUrl}/functions/v1/stream-pdf?id=${encodeURIComponent(worksheetId)}&userId=${encodeURIComponent(userId)}`;
-        setPdfUrl(streamPdfUrl);
-
-        // Step 2: Fetch the metadata (this logic remains the same)
-        const metadataResponse = await fetch(`/data/${worksheetId}.json`);
-        if (!metadataResponse.ok) {
-          throw new Error(`Failed to fetch metadata: ${metadataResponse.status}`);
-        }
-        const metadata = await metadataResponse.json();
-        setWorksheetData(metadata);
+        setWorksheetData(data.meta);
+        setPdfUrl(data.pdfUrl);
 
       } catch (e: any) {
         console.error("Failed to fetch worksheet:", e);
@@ -110,7 +103,7 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
     };
 
     fetchWorksheet();
-  }, [worksheetId, userId, pageIndex]);
+  }, [worksheetId, pageIndex]);
 
   // Check if current page is DRM protected
   useEffect(() => {

@@ -7,9 +7,6 @@ const WorksheetPage: React.FC = () => {
   const { id, n } = useParams<{ id: string; n: string }>();
   const navigate = useNavigate();
   
-  // For now, we'll use a placeholder userId. In a real app, this would come from authentication
-  const userId = "user-placeholder-id";
-  
   const goBack = () => {
     navigate("/");
   };
@@ -44,7 +41,7 @@ const WorksheetPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <WorksheetViewer worksheetId={id} pageIndex={pageIndex} userId={userId} />
+      <WorksheetViewer worksheetId={id} pageIndex={pageIndex} />
     </div>
   );
 };
