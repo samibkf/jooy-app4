@@ -4,8 +4,8 @@ import "../styles/Worksheet.css";
 import { toast } from "@/components/ui/use-toast";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, Sparkles } from "lucide-react";
-import { supabase } from '../lib/supabaseClient';
-import type { WorksheetMetadata, RegionData } from "@/types/worksheet";
+import { useWorksheetData } from '@/hooks/useWorksheetData';
+import type { RegionData } from "@/types/worksheet";
 
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.js`;
 
@@ -16,10 +16,6 @@ interface WorksheetViewerProps {
 
 const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageIndex }) => {
   const [numPages, setNumPages] = useState<number | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
-  const [worksheetData, setWorksheetData] = useState<WorksheetMetadata | null>(null);
-  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   
   const [pdfDimensions, setPdfDimensions] = useState({ width: 0, height: 0 });
   const [scaleFactor, setScaleFactor] = useState(1);
@@ -42,6 +38,11 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
   const audioRef = useRef<HTMLAudioElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const textDisplayRef = useRef<HTMLDivElement>(null);
+
+  // Use the hook for data fetching
+  const { data, isLoading, error } = useWorksheetData(worksheetId);
+  const worksheetData = data?.meta;
+  const pdfUrl = data?.pdfUrl;
 
   // Filter regions for current page and ensure description is properly split into paragraphs
   const regions = useMemo(() => {
@@ -71,39 +72,6 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
         };
       });
   }, [worksheetData, pageIndex]);
-
-  // Main data fetching effect
-  useEffect(() => {
-    const fetchWorksheet = async () => {
-      if (!worksheetId) return;
-      
-      setIsLoading(true);
-      setError(null);
-      setWorksheetData(null);
-      setPdfUrl(null);
-
-      try {
-        const { data, error: functionError } = await supabase.functions.invoke('get-worksheet-data', {
-          body: { worksheetId },
-        });
-
-        if (functionError) { 
-          throw functionError; 
-        }
-
-        setWorksheetData(data.meta);
-        setPdfUrl(data.pdfUrl);
-
-      } catch (e: any) {
-        console.error("Failed to fetch worksheet:", e);
-        setError("Failed to load the interactive worksheet. Please try again.");
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchWorksheet();
-  }, [worksheetId, pageIndex]);
 
   // Check if current page is DRM protected
   useEffect(() => {
@@ -249,7 +217,6 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
 
   const onDocumentLoadError = (err: Error) => {
     console.error("Error loading PDF:", err);
-    setError("PDF not found or unable to load");
     setIsLoading(false);
   };
   
@@ -403,7 +370,7 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
     return (
       <div className="worksheet-container">
         <div className="worksheet-error">
-          <p>{error}</p>
+          <p>Failed to load the interactive worksheet. Please try again.</p>
           <Button onClick={() => window.location.href = '/'}>
             Return to Scanner
           </Button>
