@@ -4,6 +4,7 @@ import "../styles/Worksheet.css";
 import { toast } from "@/components/ui/use-toast";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, Sparkles } from "lucide-react";
+import { getTextDirection } from "@/lib/textDirection";
 import type { WorksheetMetadata, RegionData } from "@/types/worksheet";
 
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.js`;
@@ -660,6 +661,7 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({
                   data-message-index={index}
                   role="button"
                   tabIndex={0}
+                  dir={getTextDirection(message)}
                   onKeyPress={(e) => {
                     if (e.key === 'Enter' || e.key === ' ') {
                       handleMessageClick(index);

@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ChevronLeft, Send, Loader2 } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
+import { getTextDirection } from "@/lib/textDirection";
 import SwitchModeButton from "@/components/SwitchModeButton";
 import type { RegionData, WorksheetMetadata } from "@/types/worksheet";
 
@@ -337,6 +338,7 @@ Please provide a helpful, educational response based on what you can see in the 
                             ? 'bg-gradient-to-r from-blue-500 to-blue-700 text-white'
                             : 'bg-gray-100 text-gray-900'
                         }`}
+                        dir={getTextDirection(message.content)}
                       >
                         {message.role === 'assistant' ? (
                           <ReactMarkdown 
@@ -371,6 +373,7 @@ Please provide a helpful, educational response based on what you can see in the 
                   placeholder="Ask about this worksheet page..."
                   disabled={isLoading || isGeneratingImage}
                   className="flex-1"
+                  dir={getTextDirection(inputMessage)}
                 />
                 <Button
                   onClick={handleSendMessage}
