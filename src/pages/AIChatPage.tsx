@@ -207,7 +207,7 @@ const AIChatPage: React.FC = () => {
 
     try {
       const genAI = new GoogleGenerativeAI(apiKey);
-      const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-exp" });
+      const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
       // Prepare the conversation history for context
       const conversationHistory = newMessages
