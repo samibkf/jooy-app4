@@ -55,6 +55,22 @@ const WorksheetPage: React.FC = () => {
     }
   }, []);
   
+  // Control zooming based on text mode state
+  useEffect(() => {
+    const viewportMeta = document.querySelector('meta[name="viewport"]') as HTMLMetaElement;
+    if (viewportMeta) {
+      if (isTextModeActive) {
+        // Disable zooming and reset zoom when entering text/audio/video mode
+        viewportMeta.content = "width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0";
+        console.log('Zoom disabled and reset due to text mode activation');
+      } else {
+        // Re-enable zooming when exiting text/audio/video mode
+        viewportMeta.content = "width=device-width, initial-scale=1.0, user-scalable=yes, maximum-scale=5.0";
+        console.log('Zoom re-enabled due to text mode deactivation');
+      }
+    }
+  }, [isTextModeActive]);
+  
   // Load session state when worksheet or page changes
   useEffect(() => {
     if (!id || !n) return;

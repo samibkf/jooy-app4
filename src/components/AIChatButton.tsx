@@ -56,6 +56,13 @@ const AIChatButton: React.FC<AIChatButtonProps> = ({
       });
     }
     
+    // Reset zoom before navigating to AI chat
+    const viewportMeta = document.querySelector('meta[name="viewport"]') as HTMLMetaElement;
+    if (viewportMeta) {
+      viewportMeta.content = "width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0";
+      console.log('Zoom reset before navigating to AI chat');
+    }
+    
     console.log('AIChatButton: Navigating to AI chat with isTextModeActive:', isTextModeActive);
     
     // Navigate to chat page with state including worksheet data
