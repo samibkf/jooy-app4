@@ -36,6 +36,25 @@ const WorksheetPage: React.FC = () => {
   // Fetch worksheet data once at the page level
   const { data: worksheetData, isLoading, error } = useWorksheetData(id || '');
   
+  // Enable zooming for worksheet page
+  useEffect(() => {
+    const viewportMeta = document.querySelector('meta[name="viewport"]') as HTMLMetaElement;
+    if (viewportMeta) {
+      // Store original viewport content
+      const originalContent = viewportMeta.content;
+      
+      // Enable zooming for worksheet page
+      viewportMeta.content = "width=device-width, initial-scale=1.0, user-scalable=yes, maximum-scale=5.0";
+      
+      // Cleanup function to restore original viewport when component unmounts
+      return () => {
+        if (viewportMeta) {
+          viewportMeta.content = originalContent;
+        }
+      };
+    }
+  }, []);
+  
   // Control zooming based on text mode state
   useEffect(() => {
     const viewportMeta = document.querySelector('meta[name="viewport"]') as HTMLMetaElement;
