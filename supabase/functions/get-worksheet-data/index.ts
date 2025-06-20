@@ -88,13 +88,24 @@ serve(async (req) => {
       )
     }
 
+    // Calculate DRM protection logic:
+    // - If drm_protected_pages array exists and has pages, use page-specific protection
+    // - If is_private is true AND no specific pages are listed, protect all pages
+    // - Otherwise, no protection
+    const drmProtectedPages = document.drm_protected_pages || []
+    const hasSpecificProtectedPages = Array.isArray(drmProtectedPages) && drmProtectedPages.length > 0
+    const isDocumentPrivate = document.is_private || false
+    
+    // drmProtected should only be true if the entire document is private AND no specific pages are listed
+    const drmProtected = isDocumentPrivate && !hasSpecificProtectedPages
+
     // Transform data to match expected format
     const responseData = {
       meta: {
         documentName: document.name,
         documentId: document.id,
-        drmProtectedPages: document.drm_protected_pages || [],
-        drmProtected: document.is_private || false,
+        drmProtectedPages: drmProtectedPages,
+        drmProtected: drmProtected,
         regions: regions?.map(region => ({
           id: region.id,
           document_id: document.id,
