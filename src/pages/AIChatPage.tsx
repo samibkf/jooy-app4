@@ -330,96 +330,70 @@ Analyze the student's question carefully. If they're asking for a specific works
         {/* Messages Container */}
         <div className="flex-1 overflow-hidden">
           <ScrollArea className="h-full">
-            <div className="space-y-0">
+            <div className="space-y-4 p-4">
               {messages.map((message, index) => (
                 <div
                   key={index}
-                  className={`w-full py-6 px-4 ${
-                    message.role === 'user' 
-                      ? 'bg-gray-50' 
-                      : 'bg-white border-b border-gray-100'
-                  }`}
+                  className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
                 >
-                  <div className="max-w-3xl mx-auto flex gap-4">
-                    {/* Avatar */}
-                    <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
-                      message.role === 'user'
-                        ? 'bg-blue-500 text-white'
-                        : 'bg-green-500 text-white'
-                    }`}>
-                      {message.role === 'user' ? (
-                        <User className="w-4 h-4" />
-                      ) : (
-                        <Bot className="w-4 h-4" />
-                      )}
-                    </div>
-                    
-                    {/* Message Content */}
-                    <div className="flex-1 min-w-0">
-                      <div className="mb-1">
-                        <span className="text-sm font-medium text-gray-900">
-                          {message.role === 'user' ? 'You' : 'AI Assistant'}
-                        </span>
+                  {message.role === 'user' ? (
+                    // User message - gradient blue bubble on the right
+                    <div 
+                      className="max-w-[80%] bg-gradient-to-r from-blue-500 to-blue-700 text-white rounded-2xl px-4 py-3 shadow-sm"
+                      dir={getTextDirection(message.content)}
+                    >
+                      <div className="whitespace-pre-wrap break-words">
+                        {message.content}
                       </div>
+                    </div>
+                  ) : (
+                    // AI message - full width, no bubble
+                    <div className="w-full">
                       <div 
                         className="text-gray-800 leading-relaxed"
                         dir={getTextDirection(message.content)}
                       >
-                        {message.role === 'assistant' ? (
-                          <ReactMarkdown 
-                            remarkPlugins={[remarkGfm]} 
-                            className="prose prose-gray max-w-none prose-headings:text-gray-900 prose-p:text-gray-800 prose-strong:text-gray-900 prose-em:text-gray-800 prose-code:bg-gray-100 prose-code:text-gray-900 prose-pre:bg-gray-100 prose-pre:text-gray-900 prose-li:text-gray-800 prose-a:text-blue-600 prose-blockquote:text-gray-700 prose-blockquote:border-gray-300"
-                            components={{
-                              p: ({ children }) => <p className="mb-4 last:mb-0">{children}</p>,
-                              ul: ({ children }) => <ul className="mb-4 last:mb-0 space-y-1">{children}</ul>,
-                              ol: ({ children }) => <ol className="mb-4 last:mb-0 space-y-1">{children}</ol>,
-                              li: ({ children }) => <li className="text-gray-800">{children}</li>,
-                              h1: ({ children }) => <h1 className="text-xl font-semibold mb-3 text-gray-900">{children}</h1>,
-                              h2: ({ children }) => <h2 className="text-lg font-semibold mb-2 text-gray-900">{children}</h2>,
-                              h3: ({ children }) => <h3 className="text-base font-semibold mb-2 text-gray-900">{children}</h3>,
-                              code: ({ children, className }) => {
-                                const isInline = !className;
-                                return isInline ? (
-                                  <code className="bg-gray-100 text-gray-900 px-1 py-0.5 rounded text-sm">{children}</code>
-                                ) : (
-                                  <code className={className}>{children}</code>
-                                );
-                              },
-                              pre: ({ children }) => (
-                                <pre className="bg-gray-100 text-gray-900 p-3 rounded-md overflow-x-auto mb-4">{children}</pre>
-                              ),
-                              blockquote: ({ children }) => (
-                                <blockquote className="border-l-4 border-gray-300 pl-4 italic text-gray-700 mb-4">{children}</blockquote>
-                              )
-                            }}
-                          >
-                            {message.content}
-                          </ReactMarkdown>
-                        ) : (
-                          <div className="whitespace-pre-wrap">{message.content}</div>
-                        )}
+                        <ReactMarkdown 
+                          remarkPlugins={[remarkGfm]} 
+                          className="prose prose-gray max-w-none prose-headings:text-gray-900 prose-p:text-gray-800 prose-strong:text-gray-900 prose-em:text-gray-800 prose-code:bg-gray-100 prose-code:text-gray-900 prose-pre:bg-gray-100 prose-pre:text-gray-900 prose-li:text-gray-800 prose-a:text-blue-600 prose-blockquote:text-gray-700 prose-blockquote:border-gray-300"
+                          components={{
+                            p: ({ children }) => <p className="mb-4 last:mb-0">{children}</p>,
+                            ul: ({ children }) => <ul className="mb-4 last:mb-0 space-y-1">{children}</ul>,
+                            ol: ({ children }) => <ol className="mb-4 last:mb-0 space-y-1">{children}</ol>,
+                            li: ({ children }) => <li className="text-gray-800">{children}</li>,
+                            h1: ({ children }) => <h1 className="text-xl font-semibold mb-3 text-gray-900">{children}</h1>,
+                            h2: ({ children }) => <h2 className="text-lg font-semibold mb-2 text-gray-900">{children}</h2>,
+                            h3: ({ children }) => <h3 className="text-base font-semibold mb-2 text-gray-900">{children}</h3>,
+                            code: ({ children, className }) => {
+                              const isInline = !className;
+                              return isInline ? (
+                                <code className="bg-gray-100 text-gray-900 px-1 py-0.5 rounded text-sm">{children}</code>
+                              ) : (
+                                <code className={className}>{children}</code>
+                              );
+                            },
+                            pre: ({ children }) => (
+                              <pre className="bg-gray-100 text-gray-900 p-3 rounded-md overflow-x-auto mb-4">{children}</pre>
+                            ),
+                            blockquote: ({ children }) => (
+                              <blockquote className="border-l-4 border-gray-300 pl-4 italic text-gray-700 mb-4">{children}</blockquote>
+                            )
+                          }}
+                        >
+                          {message.content}
+                        </ReactMarkdown>
                       </div>
                     </div>
-                  </div>
+                  )}
                 </div>
               ))}
               
               {/* Loading indicator */}
               {isLoading && (
-                <div className="w-full py-6 px-4 bg-white border-b border-gray-100">
-                  <div className="max-w-3xl mx-auto flex gap-4">
-                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-green-500 text-white flex items-center justify-center">
-                      <Bot className="w-4 h-4" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="mb-1">
-                        <span className="text-sm font-medium text-gray-900">AI Assistant</span>
-                      </div>
-                      <div className="flex items-center gap-2 text-gray-600">
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        <span>Thinking...</span>
-                      </div>
-                    </div>
+                <div className="flex justify-start">
+                  <div className="flex items-center gap-2 text-gray-600 bg-gray-100 rounded-2xl px-4 py-3">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span>Thinking...</span>
                   </div>
                 </div>
               )}
