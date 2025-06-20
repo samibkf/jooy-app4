@@ -339,10 +339,10 @@ Analyze the student's question carefully. If they're asking for a specific works
                   {messages.map((message, index) => (
                     <div
                       key={index}
-                      className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                      className="flex justify-start"
                     >
                       <div
-                        className={`max-w-[80%] p-3 rounded-lg ${
+                        className={`max-w-full p-3 rounded-lg ${
                           message.role === 'user'
                             ? 'bg-gradient-to-r from-blue-500 to-blue-700 text-white'
                             : 'bg-gray-100 text-gray-900'
