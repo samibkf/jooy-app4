@@ -55,8 +55,8 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({
   const [audioAvailable, setAudioAvailable] = useState<boolean>(true);
   const [audioCheckPerformed, setAudioCheckPerformed] = useState<boolean>(false);
   
-  // State to track if initial state has been applied
-  const [initialStateApplied, setInitialStateApplied] = useState<boolean>(false);
+  // State to track if initial state has been restored for the current worksheet/page
+  const [hasRestoredInitialState, setHasRestoredInitialState] = useState<boolean>(false);
   
   // Refs to track previous values for change detection
   const prevWorksheetIdRef = useRef<string>(worksheetId);
@@ -106,14 +106,13 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({
     }
   }, [worksheetMeta, pageIndex]);
 
-  // Reset component state when worksheet or page changes, or when initialActiveRegion is no longer provided
+  // Reset component state ONLY when worksheet or page genuinely changes
   useEffect(() => {
     const worksheetChanged = prevWorksheetIdRef.current !== worksheetId;
     const pageChanged = prevPageIndexRef.current !== pageIndex;
-    const noInitialRegion = !initialActiveRegion;
     
-    if (worksheetChanged || pageChanged || (noInitialRegion && initialStateApplied)) {
-      console.log('Resetting component state due to:', { worksheetChanged, pageChanged, noInitialRegion });
+    if (worksheetChanged || pageChanged) {
+      console.log('Resetting component state due to worksheet/page change:', { worksheetChanged, pageChanged });
       
       // Reset all state to defaults
       setActiveRegion(null);
@@ -122,7 +121,7 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({
       setIsTextMode(false);
       setIsAudioPlaying(false);
       setAudioCheckPerformed(false);
-      setInitialStateApplied(false);
+      setHasRestoredInitialState(false);
       
       // Notify parent about text mode change
       if (onTextModeChange) {
@@ -143,11 +142,11 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({
       prevWorksheetIdRef.current = worksheetId;
       prevPageIndexRef.current = pageIndex;
     }
-  }, [worksheetId, pageIndex, initialActiveRegion, initialStateApplied, onTextModeChange]);
+  }, [worksheetId, pageIndex, onTextModeChange]);
 
-  // Apply initial state restoration (only once when initialActiveRegion is provided and not yet applied)
+  // Apply initial state restoration (only once when initialActiveRegion is provided and not yet restored)
   useEffect(() => {
-    if (initialActiveRegion && regions.length > 0 && !initialStateApplied) {
+    if (initialActiveRegion && regions.length > 0 && !hasRestoredInitialState) {
       console.log('Applying initial state restoration:', { initialActiveRegion, initialCurrentStepIndex });
       
       // Find the matching region in the current regions
@@ -186,11 +185,11 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({
           }
         }
         
-        // Mark initial state as applied
-        setInitialStateApplied(true);
+        // Mark initial state as restored
+        setHasRestoredInitialState(true);
       }
     }
-  }, [initialActiveRegion, initialCurrentStepIndex, regions, initialStateApplied, onTextModeChange, audioAvailable]);
+  }, [initialActiveRegion, initialCurrentStepIndex, regions, hasRestoredInitialState, onTextModeChange, audioAvailable]);
 
   // Initial audio availability check - performed once when worksheet/page loads
   useEffect(() => {
@@ -512,6 +511,11 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({
     if (onTextModeChange) {
       onTextModeChange(false);
     }
+    
+    // Clear the active region and reset state when manually exiting text mode
+    setActiveRegion(null);
+    setCurrentStepIndex(0);
+    setDisplayedMessages([]);
     
     if (audioRef.current) {
       audioRef.current.pause();
