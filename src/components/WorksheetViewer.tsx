@@ -46,6 +46,7 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({
   
   const [isAudioPlaying, setIsAudioPlaying] = useState<boolean>(false);
   const [audioAvailable, setAudioAvailable] = useState<boolean>(true);
+  const [audioCheckPerformed, setAudioCheckPerformed] = useState<boolean>(false);
   
   const pdfContainerRef = useRef<HTMLDivElement>(null);
   const pdfRef = useRef<HTMLCanvasElement>(null);
@@ -90,6 +91,65 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({
       setIsCurrentPageDrmProtected(isDrmProtected);
     }
   }, [worksheetMeta, pageIndex]);
+
+  // Initial audio availability check - performed once when worksheet/page loads
+  useEffect(() => {
+    if (!audioCheckPerformed && regions.length > 0) {
+      console.log('Performing initial audio availability check...');
+      
+      const firstRegion = regions[0];
+      const audioPath = `/audio/${worksheetId}/${firstRegion.name}_1.mp3`;
+      
+      // Create a temporary audio object for testing
+      const testAudio = new Audio();
+      let checkCompleted = false;
+      
+      const completeCheck = (available: boolean) => {
+        if (checkCompleted) return;
+        checkCompleted = true;
+        
+        console.log(`Audio availability check completed: ${available ? 'Available' : 'Not available'}`);
+        setAudioAvailable(available);
+        setAudioCheckPerformed(true);
+        
+        // Clean up event listeners
+        testAudio.removeEventListener('canplaythrough', handleCanPlay);
+        testAudio.removeEventListener('error', handleError);
+      };
+      
+      const handleCanPlay = () => {
+        completeCheck(true);
+      };
+      
+      const handleError = () => {
+        completeCheck(false);
+      };
+      
+      // Set up event listeners
+      testAudio.addEventListener('canplaythrough', handleCanPlay);
+      testAudio.addEventListener('error', handleError);
+      
+      // Set timeout to handle cases where neither event fires
+      const timeout = setTimeout(() => {
+        console.warn('Audio availability check timed out, assuming unavailable');
+        completeCheck(false);
+      }, 3000); // 3 second timeout
+      
+      // Start the test
+      testAudio.src = audioPath;
+      testAudio.load();
+      
+      // Cleanup function
+      return () => {
+        clearTimeout(timeout);
+        testAudio.removeEventListener('canplaythrough', handleCanPlay);
+        testAudio.removeEventListener('error', handleError);
+        if (!checkCompleted) {
+          testAudio.src = '';
+        }
+      };
+    }
+  }, [worksheetId, pageIndex, regions, audioCheckPerformed]);
 
   // Reset component state when worksheet or page changes, but restore initial state if provided
   useEffect(() => {
@@ -136,7 +196,7 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({
       setDisplayedMessages([]);
       setIsTextMode(false);
       setIsAudioPlaying(false);
-      setAudioAvailable(true);
+      setAudioCheckPerformed(false); // Reset audio check flag for new worksheet/page
       
       // Notify parent about text mode change
       if (onTextModeChange) {
@@ -317,13 +377,11 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({
     audioRef.current.onerror = () => {
       console.warn(`Audio file not found: ${audioPath}`);
       setIsAudioPlaying(false);
-      setAudioAvailable(false);
     };
     
     audioRef.current.play().catch(err => {
       console.warn("Error playing audio:", err);
       setIsAudioPlaying(false);
-      setAudioAvailable(false);
     });
   };
   
@@ -344,7 +402,7 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({
         videoRef.current.play().catch(err => console.error("Error playing video:", err));
       }
       
-      // Only try to play audio if it's available
+      // Only try to play audio if it's available (based on initial check)
       if (audioAvailable) {
         setTimeout(() => {
           playAudioSegment(region.name, 0);
@@ -377,7 +435,7 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({
         activeRegion.description[nextStepIndex]
       ]);
       
-      // Only try to play audio if it's available
+      // Only try to play audio if it's available (based on initial check)
       if (audioAvailable) {
         setTimeout(() => {
           playAudioSegment(activeRegion.name, nextStepIndex);
@@ -413,7 +471,7 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({
           videoRef.current.play().catch(err => console.error("Error playing video:", err));
         }
         
-        // Only try to play audio if it's available
+        // Only try to play audio if it's available (based on initial check)
         if (activeRegion && audioAvailable) {
           setTimeout(() => {
             playAudioSegment(activeRegion.name, currentStepIndex);
