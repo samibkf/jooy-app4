@@ -47,6 +47,45 @@ const AIChatPage: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  // Load chat history from localStorage on component mount or when worksheet/page changes
+  useEffect(() => {
+    if (!worksheetId || !pageNumber) return;
+    
+    const chatHistoryKey = `aiChatHistory_${worksheetId}_${pageNumber}`;
+    
+    try {
+      const storedHistory = localStorage.getItem(chatHistoryKey);
+      if (storedHistory) {
+        const parsedHistory = JSON.parse(storedHistory);
+        if (Array.isArray(parsedHistory) && parsedHistory.length > 0) {
+          setMessages(parsedHistory);
+          return; // Don't set default message if we have stored history
+        }
+      }
+    } catch (error) {
+      console.warn('Failed to parse stored chat history:', error);
+    }
+    
+    // Set default AI welcome message if no stored history
+    setMessages([{
+      role: 'assistant',
+      content: `How can I help you with this worksheet page?`
+    }]);
+  }, [worksheetId, pageNumber]);
+
+  // Save chat history to localStorage whenever messages change
+  useEffect(() => {
+    if (!worksheetId || !pageNumber || messages.length === 0) return;
+    
+    const chatHistoryKey = `aiChatHistory_${worksheetId}_${pageNumber}`;
+    
+    try {
+      localStorage.setItem(chatHistoryKey, JSON.stringify(messages));
+    } catch (error) {
+      console.warn('Failed to save chat history to localStorage:', error);
+    }
+  }, [messages, worksheetId, pageNumber]);
+
   // Scroll to bottom when new messages are added
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -108,12 +147,6 @@ const AIChatPage: React.FC = () => {
       const imageDataUrl = canvas.toDataURL('image/png');
       setPageImage(imageDataUrl);
       setIsGeneratingImage(false);
-      
-      // Add initial AI message
-      setMessages([{
-        role: 'assistant',
-        content: `How can I help you with this worksheet page?`
-      }]);
     }).catch((error: any) => {
       console.error('Error rendering PDF page:', error);
       setIsGeneratingImage(false);
