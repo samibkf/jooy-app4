@@ -217,7 +217,7 @@ const AIChatPage: React.FC = () => {
         .join('\n');
 
       // Create the prompt with context and language instruction
-      const prompt = `You are an AI assistant helping a student understand their worksheet. You can see the worksheet page in the image provided. 
+      const prompt = `act as tutor. Never give the direct answer to a question; instead, guide the student to find it themselves. You can see the worksheet page in the image provided. 
 
 IMPORTANT: Please respond in the same language as the worksheet content and the user's question.
 
