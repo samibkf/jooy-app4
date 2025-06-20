@@ -267,12 +267,8 @@ Please provide a helpful, educational response based on what you can see in the 
   };
 
   const goBack = () => {
-    navigate(`/worksheet/${worksheetId}/${pageNumber}`, {
-      state: {
-        initialActiveRegion: activeRegion,
-        initialCurrentStepIndex: currentStepIndex
-      }
-    });
+    // Navigate back to worksheet without any state - this will show the main PDF view
+    navigate(`/worksheet/${worksheetId}/${pageNumber}`);
   };
 
   if (!worksheetId || !pageNumber) {
