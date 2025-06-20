@@ -89,11 +89,9 @@ const AIChatPage: React.FC = () => {
     }
   }, [messages, worksheetId, pageNumber]);
 
-  // Scroll to bottom when new messages are added - with setTimeout to ensure DOM is rendered
+  // Scroll to bottom when new messages are added
   useEffect(() => {
-    setTimeout(() => {
-      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    }, 0);
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
   // Load cached page image or generate new one
