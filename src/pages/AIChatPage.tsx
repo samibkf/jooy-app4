@@ -10,9 +10,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ChevronLeft, Send, Loader2 } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
-import { supabase } from '../lib/supabaseClient';
 import SwitchModeButton from "@/components/SwitchModeButton";
-import type { RegionData } from "@/types/worksheet";
+import type { RegionData, WorksheetMetadata } from "@/types/worksheet";
 
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.js`;
 
@@ -31,17 +30,20 @@ const AIChatPage: React.FC = () => {
     fromTextMode?: boolean;
     activeRegion?: RegionData;
     currentStepIndex?: number;
+    pdfUrl?: string;
+    worksheetMeta?: WorksheetMetadata;
   } | null;
   
   const fromTextMode = locationState?.fromTextMode || false;
   const activeRegion = locationState?.activeRegion;
   const currentStepIndex = locationState?.currentStepIndex || 0;
+  const pdfUrl = locationState?.pdfUrl;
+  const worksheetMeta = locationState?.worksheetMeta;
   
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputMessage, setInputMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [pageImage, setPageImage] = useState<string | null>(null);
-  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [isGeneratingImage, setIsGeneratingImage] = useState(true);
   
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -91,38 +93,20 @@ const AIChatPage: React.FC = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // Generate page image on component mount
+  // Generate page image on component mount if pdfUrl is available
   useEffect(() => {
-    const generatePageImage = async () => {
-      if (!worksheetId || !pageNumber) return;
-      
-      setIsGeneratingImage(true);
-      
-      try {
-        // Fetch PDF URL from Supabase
-        const { data, error } = await supabase.functions.invoke('get-worksheet-data', {
-          body: { worksheetId },
-        });
-
-        if (error || !data?.pdfUrl) {
-          throw new Error('Failed to fetch PDF');
-        }
-
-        setPdfUrl(data.pdfUrl);
-        
-        // The actual image generation will happen in the onPageLoadSuccess callback
-      } catch (error) {
-        console.error('Error fetching PDF:', error);
-        toast({
-          title: "Error",
-          description: "Failed to load worksheet page for AI chat.",
-          variant: "destructive"
-        });
-      }
-    };
-
-    generatePageImage();
-  }, [worksheetId, pageNumber]);
+    if (!pdfUrl || !pageNumber) {
+      setIsGeneratingImage(false);
+      toast({
+        title: "Error",
+        description: "PDF data not available for AI chat.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    setIsGeneratingImage(true);
+  }, [pdfUrl, pageNumber]);
 
   const onPageLoadSuccess = (page: any) => {
     const canvas = canvasRef.current;
@@ -241,7 +225,12 @@ Please provide a helpful, educational response based on what you can see in the 
   };
 
   const goBack = () => {
-    navigate(`/worksheet/${worksheetId}/${pageNumber}`);
+    navigate(`/worksheet/${worksheetId}/${pageNumber}`, {
+      state: {
+        initialActiveRegion: activeRegion,
+        initialCurrentStepIndex: currentStepIndex
+      }
+    });
   };
 
   if (!worksheetId || !pageNumber) {
@@ -252,6 +241,19 @@ Please provide a helpful, educational response based on what you can see in the 
         </h1>
         <Button onClick={() => navigate("/")} className="bg-gradient-to-r from-blue-500 to-blue-700 hover:from-blue-600 hover:to-blue-800 text-white">
           Return to Scanner
+        </Button>
+      </div>
+    );
+  }
+
+  if (!pdfUrl) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center">
+        <h1 className="text-2xl font-bold text-red-500 mb-4">
+          Worksheet data not available
+        </h1>
+        <Button onClick={goBack} className="bg-gradient-to-r from-blue-500 to-blue-700 hover:from-blue-600 hover:to-blue-800 text-white">
+          Return to Worksheet
         </Button>
       </div>
     );

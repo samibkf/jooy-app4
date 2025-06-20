@@ -4,7 +4,6 @@ import "../styles/Worksheet.css";
 import { toast } from "@/components/ui/use-toast";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, Sparkles } from "lucide-react";
-import { supabase } from '../lib/supabaseClient';
 import type { WorksheetMetadata, RegionData } from "@/types/worksheet";
 
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.js`;
@@ -12,6 +11,8 @@ pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/b
 interface WorksheetViewerProps {
   worksheetId: string;
   pageIndex: number;
+  worksheetMeta: WorksheetMetadata;
+  pdfUrl: string;
   onTextModeChange?: (isTextMode: boolean) => void;
   initialActiveRegion?: RegionData;
   initialCurrentStepIndex?: number;
@@ -21,16 +22,14 @@ interface WorksheetViewerProps {
 const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ 
   worksheetId, 
   pageIndex, 
+  worksheetMeta,
+  pdfUrl,
   onTextModeChange,
   initialActiveRegion,
   initialCurrentStepIndex = 0,
   onRegionStateChange
 }) => {
   const [numPages, setNumPages] = useState<number | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
-  const [worksheetData, setWorksheetData] = useState<WorksheetMetadata | null>(null);
-  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   
   const [pdfDimensions, setPdfDimensions] = useState({ width: 0, height: 0 });
   const [scaleFactor, setScaleFactor] = useState(1);
@@ -56,8 +55,8 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({
 
   // Filter regions for current page and ensure description is properly split into paragraphs
   const regions = useMemo(() => {
-    if (!worksheetData?.regions) return [];
-    return worksheetData.regions
+    if (!worksheetMeta?.regions) return [];
+    return worksheetMeta.regions
       .filter((region: RegionData) => region.page === pageIndex)
       .map((region: RegionData) => {
         let processedDescription: string[] = [];
@@ -81,49 +80,16 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({
           description: processedDescription
         };
       });
-  }, [worksheetData, pageIndex]);
-
-  // Main data fetching effect
-  useEffect(() => {
-    const fetchWorksheet = async () => {
-      if (!worksheetId) return;
-      
-      setIsLoading(true);
-      setError(null);
-      setWorksheetData(null);
-      setPdfUrl(null);
-
-      try {
-        const { data, error: functionError } = await supabase.functions.invoke('get-worksheet-data', {
-          body: { worksheetId },
-        });
-
-        if (functionError) { 
-          throw functionError; 
-        }
-
-        setWorksheetData(data.meta);
-        setPdfUrl(data.pdfUrl);
-
-      } catch (e: any) {
-        console.error("Failed to fetch worksheet:", e);
-        setError("Failed to load the interactive worksheet. Please try again.");
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchWorksheet();
-  }, [worksheetId, pageIndex]);
+  }, [worksheetMeta, pageIndex]);
 
   // Check if current page is DRM protected
   useEffect(() => {
-    if (worksheetData) {
-      const isDrmProtected = worksheetData.drmProtected || 
-        (Array.isArray(worksheetData.drmProtectedPages) && worksheetData.drmProtectedPages.includes(pageIndex));
+    if (worksheetMeta) {
+      const isDrmProtected = worksheetMeta.drmProtected || 
+        (Array.isArray(worksheetMeta.drmProtectedPages) && worksheetMeta.drmProtectedPages.includes(pageIndex));
       setIsCurrentPageDrmProtected(isDrmProtected);
     }
-  }, [worksheetData, pageIndex]);
+  }, [worksheetMeta, pageIndex]);
 
   // Reset component state when worksheet or page changes, but restore initial state if provided
   useEffect(() => {
@@ -311,8 +277,11 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({
 
   const onDocumentLoadError = (err: Error) => {
     console.error("Error loading PDF:", err);
-    setError("PDF not found or unable to load");
-    setIsLoading(false);
+    toast({
+      title: "PDF Error",
+      description: "PDF not found or unable to load",
+      variant: "destructive"
+    });
   };
   
   const onPageLoadSuccess = (page: any) => {
@@ -459,45 +428,6 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({
   };
   
   const hasNextStep = activeRegion?.description && currentStepIndex < activeRegion.description.length - 1;
-
-  // Show loading state while fetching data
-  if (isLoading) {
-    return (
-      <div className="worksheet-container">
-        <div className="worksheet-loading">
-          <p>Loading worksheet...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Show error if worksheet not found
-  if (error) {
-    return (
-      <div className="worksheet-container">
-        <div className="worksheet-error">
-          <p>{error}</p>
-          <Button onClick={() => window.location.href = '/'}>
-            Return to Scanner
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
-  // Show error if no data available
-  if (!worksheetData || !pdfUrl) {
-    return (
-      <div className="worksheet-container">
-        <div className="worksheet-error">
-          <p>Worksheet not found</p>
-          <Button onClick={() => window.location.href = '/'}>
-            Return to Scanner
-          </Button>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div 

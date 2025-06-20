@@ -3,6 +3,7 @@ import { useParams, useNavigate, useLocation } from "react-router-dom";
 import WorksheetViewer from "@/components/WorksheetViewer";
 import AIChatButton from "@/components/AIChatButton";
 import { Button } from "@/components/ui/button";
+import { useWorksheetData } from "@/hooks/useWorksheetData";
 import type { RegionData } from "@/types/worksheet";
 
 const WorksheetPage: React.FC = () => {
@@ -19,6 +20,9 @@ const WorksheetPage: React.FC = () => {
     initialActiveRegion?: RegionData; 
     initialCurrentStepIndex?: number; 
   } | null;
+  
+  // Fetch worksheet data once at the page level
+  const { data: worksheetData, isLoading, error } = useWorksheetData(id || '');
   
   const goBack = () => {
     navigate("/");
@@ -57,11 +61,40 @@ const WorksheetPage: React.FC = () => {
     );
   }
 
+  // Show loading state while fetching data
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center">
+        <div className="text-center">
+          <p className="text-lg">Loading worksheet...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error if worksheet not found
+  if (error || !worksheetData) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-red-500 mb-4">
+            {error?.message || "Worksheet not found"}
+          </h1>
+          <Button onClick={goBack} className="bg-gradient-to-r from-blue-500 to-blue-700 hover:from-blue-600 hover:to-blue-800 text-white">
+            Return to Scanner
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       <WorksheetViewer 
         worksheetId={id} 
         pageIndex={pageIndex} 
+        worksheetMeta={worksheetData.meta}
+        pdfUrl={worksheetData.pdfUrl}
         onTextModeChange={setIsTextModeActive}
         initialActiveRegion={locationState?.initialActiveRegion}
         initialCurrentStepIndex={locationState?.initialCurrentStepIndex}
@@ -73,6 +106,8 @@ const WorksheetPage: React.FC = () => {
         isTextModeActive={isTextModeActive}
         activeRegion={currentActiveRegion}
         currentStepIndex={currentStepIndex}
+        pdfUrl={worksheetData.pdfUrl}
+        worksheetMeta={worksheetData.meta}
       />
     </div>
   );

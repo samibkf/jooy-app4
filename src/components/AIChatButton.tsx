@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { MessageSquareText } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
 import { cn } from "@/lib/utils";
-import type { RegionData } from "@/types/worksheet";
+import type { RegionData, WorksheetMetadata } from "@/types/worksheet";
 
 interface AIChatButtonProps {
   worksheetId: string;
@@ -12,6 +12,8 @@ interface AIChatButtonProps {
   isTextModeActive: boolean;
   activeRegion?: RegionData | null;
   currentStepIndex?: number;
+  pdfUrl: string;
+  worksheetMeta: WorksheetMetadata;
 }
 
 const AIChatButton: React.FC<AIChatButtonProps> = ({ 
@@ -19,7 +21,9 @@ const AIChatButton: React.FC<AIChatButtonProps> = ({
   pageNumber, 
   isTextModeActive,
   activeRegion,
-  currentStepIndex = 0
+  currentStepIndex = 0,
+  pdfUrl,
+  worksheetMeta
 }) => {
   const navigate = useNavigate();
 
@@ -52,12 +56,14 @@ const AIChatButton: React.FC<AIChatButtonProps> = ({
       });
     }
     
-    // Navigate to chat page with state indicating if coming from text mode and current region state
+    // Navigate to chat page with state including worksheet data
     navigate(`/chat/${worksheetId}/${pageNumber}`, { 
       state: { 
         fromTextMode: isTextModeActive,
         activeRegion: activeRegion,
-        currentStepIndex: currentStepIndex
+        currentStepIndex: currentStepIndex,
+        pdfUrl: pdfUrl,
+        worksheetMeta: worksheetMeta
       } 
     });
   };

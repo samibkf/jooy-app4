@@ -2,10 +2,15 @@ import { useQuery } from '@tanstack/react-query'
 import { supabase, shouldUseSupabase } from '@/lib/supabase'
 import type { WorksheetMetadata } from '@/types/worksheet'
 
+interface WorksheetDataResponse {
+  meta: WorksheetMetadata;
+  pdfUrl: string;
+}
+
 export const useWorksheetData = (worksheetId: string) => {
   return useQuery({
     queryKey: ['worksheet', worksheetId],
-    queryFn: async (): Promise<WorksheetMetadata> => {
+    queryFn: async (): Promise<WorksheetDataResponse> => {
       // If Supabase is not configured, fallback to JSON files
       if (!shouldUseSupabase()) {
         console.log('Supabase not configured, using JSON fallback')
@@ -13,36 +18,29 @@ export const useWorksheetData = (worksheetId: string) => {
         if (!response.ok) {
           throw new Error(`Failed to fetch worksheet data: ${response.status}`)
         }
-        return response.json()
+        const jsonData = await response.json()
+        return {
+          meta: jsonData,
+          pdfUrl: `/pdfs/${worksheetId}.pdf`
+        }
       }
 
-      // Use Supabase if configured
-      const { data: worksheet, error: worksheetError } = await supabase
-        .from('worksheets')
-        .select('*')
-        .eq('id', worksheetId)
-        .single()
+      // Use Supabase edge function to get both metadata and PDF URL
+      const { data, error } = await supabase.functions.invoke('get-worksheet-data', {
+        body: { worksheetId },
+      });
 
-      if (worksheetError) {
-        throw new Error(`Failed to fetch worksheet: ${worksheetError.message}`)
+      if (error) {
+        throw new Error(`Failed to fetch worksheet: ${error.message}`)
       }
 
-      const { data: regions, error: regionsError } = await supabase
-        .from('regions')
-        .select('*')
-        .eq('worksheet_id', worksheetId)
-        .order('page', { ascending: true })
-
-      if (regionsError) {
-        throw new Error(`Failed to fetch regions: ${regionsError.message}`)
+      if (!data?.meta || !data?.pdfUrl) {
+        throw new Error('Invalid response from worksheet data function')
       }
 
       return {
-        documentName: worksheet.document_name,
-        documentId: worksheet.document_id,
-        drmProtectedPages: worksheet.drm_protected_pages || [],
-        drmProtected: worksheet.drm_protected || false,
-        regions: regions || []
+        meta: data.meta,
+        pdfUrl: data.pdfUrl
       }
     },
     enabled: !!worksheetId,
