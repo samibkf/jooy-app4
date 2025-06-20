@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Document, Page, pdfjs } from "react-pdf";
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -249,7 +251,16 @@ Please provide a helpful, educational response based on what you can see in the 
                             : 'bg-gray-100 text-gray-900'
                         }`}
                       >
-                        <p className="whitespace-pre-wrap">{message.content}</p>
+                        {message.role === 'assistant' ? (
+                          <ReactMarkdown 
+                            remarkPlugins={[remarkGfm]} 
+                            className="prose prose-sm max-w-none prose-headings:text-gray-900 prose-p:text-gray-900 prose-strong:text-gray-900 prose-em:text-gray-900 prose-code:text-gray-900 prose-pre:text-gray-900 prose-li:text-gray-900"
+                          >
+                            {message.content}
+                          </ReactMarkdown>
+                        ) : (
+                          <p className="whitespace-pre-wrap">{message.content}</p>
+                        )}
                       </div>
                     </div>
                   ))}
