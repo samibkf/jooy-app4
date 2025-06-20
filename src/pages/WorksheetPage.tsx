@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import WorksheetViewer from "@/components/WorksheetViewer";
 import AIChatButton from "@/components/AIChatButton";
@@ -135,11 +135,26 @@ const WorksheetPage: React.FC = () => {
     navigate("/");
   };
 
-  const handleRegionStateChange = (region: RegionData | null, stepIndex: number) => {
+  // Memoize the handleRegionStateChange function to prevent unnecessary re-renders
+  const handleRegionStateChange = useCallback((region: RegionData | null, stepIndex: number) => {
     console.log('🔍 [DEBUG] handleRegionStateChange called with region:', region?.id, 'stepIndex:', stepIndex);
     
-    setCurrentActiveRegion(region);
-    setCurrentStepIndex(stepIndex);
+    // Only update state if there's an actual change
+    setCurrentActiveRegion(prevRegion => {
+      const regionChanged = prevRegion?.id !== region?.id;
+      if (regionChanged) {
+        console.log('🔍 [DEBUG] Region changed from', prevRegion?.id, 'to', region?.id);
+      }
+      return regionChanged ? region : prevRegion;
+    });
+    
+    setCurrentStepIndex(prevStepIndex => {
+      const stepChanged = prevStepIndex !== stepIndex;
+      if (stepChanged) {
+        console.log('🔍 [DEBUG] Step index changed from', prevStepIndex, 'to', stepIndex);
+      }
+      return stepChanged ? stepIndex : prevStepIndex;
+    });
     
     // Update all regions state and save to session storage
     if (id && n) {
@@ -201,7 +216,7 @@ const WorksheetPage: React.FC = () => {
         return updatedAllRegionsState;
       });
     }
-  };
+  }, [id, n]); // Only depend on id and n, which are stable
 
   if (!id || !n) {
     return (
