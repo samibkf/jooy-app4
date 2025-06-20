@@ -13,27 +13,6 @@ serve(async (req) => {
   }
 
   try {
-    // Validate environment variables first
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
-
-    if (!supabaseUrl || !supabaseKey) {
-      console.error('Missing environment variables:', {
-        hasUrl: !!supabaseUrl,
-        hasKey: !!supabaseKey
-      })
-      return new Response(
-        JSON.stringify({ 
-          error: 'Server configuration error: Missing required environment variables',
-          details: 'SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY not configured'
-        }),
-        { 
-          status: 500, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      )
-    }
-
     const { worksheetId } = await req.json()
 
     if (!worksheetId) {
@@ -46,7 +25,9 @@ serve(async (req) => {
       )
     }
 
-    // Initialize Supabase client with validated environment variables
+    // Initialize Supabase client
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     const supabase = createClient(supabaseUrl, supabaseKey)
 
     // Fetch worksheet metadata
@@ -127,10 +108,7 @@ serve(async (req) => {
   } catch (error) {
     console.error('Function error:', error)
     return new Response(
-      JSON.stringify({ 
-        error: 'Internal server error',
-        details: error.message 
-      }),
+      JSON.stringify({ error: 'Internal server error' }),
       { 
         status: 500, 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 

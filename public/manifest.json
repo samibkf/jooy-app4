@@ -3,7 +3,7 @@
   "short_name": "PDF Navigator",
   "description": "Interactive PDF worksheet navigator with QR code scanning",
   "start_url": "/",
-  "display": "fullscreen",
+  "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#3b82f6",
   "orientation": "portrait-primary",
