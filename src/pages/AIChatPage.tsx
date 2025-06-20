@@ -6,9 +6,9 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { ChevronLeft, Send, Loader2 } from "lucide-react";
+import { ChevronLeft, Send, Loader2, User, Bot } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
 import { getTextDirection } from "@/lib/textDirection";
 import SwitchModeButton from "@/components/SwitchModeButton";
@@ -325,76 +325,132 @@ Analyze the student's question carefully. If they're asking for a specific works
         </div>
       </div>
 
-      <div className="flex-1 flex gap-4 p-4 pt-20 max-w-4xl mx-auto w-full">
-        {/* Chat Interface */}
-        <div className="flex-1 flex flex-col">
-          <Card className="flex-1 flex flex-col">
-            <CardHeader>
-              <CardTitle className="text-lg">AI Assistant</CardTitle>
-            </CardHeader>
-            <CardContent className="flex-1 flex flex-col">
-              {/* Messages */}
-              <ScrollArea className="flex-1 mb-4 h-96">
-                <div className="space-y-4 pr-4">
-                  {messages.map((message, index) => (
-                    <div
-                      key={index}
-                      className="flex justify-start"
-                    >
-                      <div
-                        className={`max-w-full p-3 rounded-lg ${
-                          message.role === 'user'
-                            ? 'bg-gradient-to-r from-blue-500 to-blue-700 text-white'
-                            : 'bg-gray-100 text-gray-900'
-                        }`}
+      {/* Main Chat Container */}
+      <div className="flex-1 flex flex-col pt-20 pb-20 max-w-4xl mx-auto w-full">
+        {/* Messages Container */}
+        <div className="flex-1 overflow-hidden">
+          <ScrollArea className="h-full">
+            <div className="space-y-0">
+              {messages.map((message, index) => (
+                <div
+                  key={index}
+                  className={`w-full py-6 px-4 ${
+                    message.role === 'user' 
+                      ? 'bg-gray-50' 
+                      : 'bg-white border-b border-gray-100'
+                  }`}
+                >
+                  <div className="max-w-3xl mx-auto flex gap-4">
+                    {/* Avatar */}
+                    <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
+                      message.role === 'user'
+                        ? 'bg-blue-500 text-white'
+                        : 'bg-green-500 text-white'
+                    }`}>
+                      {message.role === 'user' ? (
+                        <User className="w-4 h-4" />
+                      ) : (
+                        <Bot className="w-4 h-4" />
+                      )}
+                    </div>
+                    
+                    {/* Message Content */}
+                    <div className="flex-1 min-w-0">
+                      <div className="mb-1">
+                        <span className="text-sm font-medium text-gray-900">
+                          {message.role === 'user' ? 'You' : 'AI Assistant'}
+                        </span>
+                      </div>
+                      <div 
+                        className="text-gray-800 leading-relaxed"
                         dir={getTextDirection(message.content)}
                       >
                         {message.role === 'assistant' ? (
                           <ReactMarkdown 
                             remarkPlugins={[remarkGfm]} 
-                            className="prose prose-sm max-w-none prose-headings:text-gray-900 prose-p:text-gray-900 prose-strong:text-gray-900 prose-em:text-gray-900 prose-code:text-gray-900 prose-pre:text-gray-900 prose-li:text-gray-900"
+                            className="prose prose-gray max-w-none prose-headings:text-gray-900 prose-p:text-gray-800 prose-strong:text-gray-900 prose-em:text-gray-800 prose-code:bg-gray-100 prose-code:text-gray-900 prose-pre:bg-gray-100 prose-pre:text-gray-900 prose-li:text-gray-800 prose-a:text-blue-600 prose-blockquote:text-gray-700 prose-blockquote:border-gray-300"
+                            components={{
+                              p: ({ children }) => <p className="mb-4 last:mb-0">{children}</p>,
+                              ul: ({ children }) => <ul className="mb-4 last:mb-0 space-y-1">{children}</ul>,
+                              ol: ({ children }) => <ol className="mb-4 last:mb-0 space-y-1">{children}</ol>,
+                              li: ({ children }) => <li className="text-gray-800">{children}</li>,
+                              h1: ({ children }) => <h1 className="text-xl font-semibold mb-3 text-gray-900">{children}</h1>,
+                              h2: ({ children }) => <h2 className="text-lg font-semibold mb-2 text-gray-900">{children}</h2>,
+                              h3: ({ children }) => <h3 className="text-base font-semibold mb-2 text-gray-900">{children}</h3>,
+                              code: ({ children, className }) => {
+                                const isInline = !className;
+                                return isInline ? (
+                                  <code className="bg-gray-100 text-gray-900 px-1 py-0.5 rounded text-sm">{children}</code>
+                                ) : (
+                                  <code className={className}>{children}</code>
+                                );
+                              },
+                              pre: ({ children }) => (
+                                <pre className="bg-gray-100 text-gray-900 p-3 rounded-md overflow-x-auto mb-4">{children}</pre>
+                              ),
+                              blockquote: ({ children }) => (
+                                <blockquote className="border-l-4 border-gray-300 pl-4 italic text-gray-700 mb-4">{children}</blockquote>
+                              )
+                            }}
                           >
                             {message.content}
                           </ReactMarkdown>
                         ) : (
-                          <p className="whitespace-pre-wrap">{message.content}</p>
+                          <div className="whitespace-pre-wrap">{message.content}</div>
                         )}
                       </div>
                     </div>
-                  ))}
-                  {isLoading && (
-                    <div className="flex justify-start">
-                      <div className="bg-gray-100 text-gray-900 p-3 rounded-lg">
+                  </div>
+                </div>
+              ))}
+              
+              {/* Loading indicator */}
+              {isLoading && (
+                <div className="w-full py-6 px-4 bg-white border-b border-gray-100">
+                  <div className="max-w-3xl mx-auto flex gap-4">
+                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-green-500 text-white flex items-center justify-center">
+                      <Bot className="w-4 h-4" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="mb-1">
+                        <span className="text-sm font-medium text-gray-900">AI Assistant</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-gray-600">
                         <Loader2 className="h-4 w-4 animate-spin" />
+                        <span>Thinking...</span>
                       </div>
                     </div>
-                  )}
-                  <div ref={messagesEndRef} />
+                  </div>
                 </div>
-              </ScrollArea>
+              )}
+              
+              <div ref={messagesEndRef} />
+            </div>
+          </ScrollArea>
+        </div>
+      </div>
 
-              {/* Input */}
-              <div className="flex gap-2">
-                <Input
-                  value={inputMessage}
-                  onChange={(e) => setInputMessage(e.target.value)}
-                  onKeyPress={handleKeyPress}
-                  placeholder="Ask about this worksheet page..."
-                  disabled={isLoading || isGeneratingImage}
-                  className="flex-1"
-                  dir={getTextDirection(inputMessage)}
-                />
-                <Button
-                  onClick={handleSendMessage}
-                  disabled={isLoading || !inputMessage.trim() || isGeneratingImage}
-                  size="icon"
-                  className="bg-gradient-to-r from-blue-500 to-blue-700 hover:from-blue-600 hover:to-blue-800"
-                >
-                  <Send className="h-4 w-4" />
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+      {/* Fixed Input Area */}
+      <div className="fixed bottom-0 left-0 right-0 z-60 bg-white border-t border-gray-200 p-4">
+        <div className="max-w-3xl mx-auto">
+          <div className="flex gap-3">
+            <Input
+              value={inputMessage}
+              onChange={(e) => setInputMessage(e.target.value)}
+              onKeyPress={handleKeyPress}
+              placeholder="Ask about this worksheet page..."
+              disabled={isLoading || isGeneratingImage}
+              className="flex-1 min-h-[44px] text-base border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+              dir={getTextDirection(inputMessage)}
+            />
+            <Button
+              onClick={handleSendMessage}
+              disabled={isLoading || !inputMessage.trim() || isGeneratingImage}
+              className="bg-gradient-to-r from-blue-500 to-blue-700 hover:from-blue-600 hover:to-blue-800 min-w-[44px] h-[44px] px-3"
+            >
+              <Send className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
       </div>
 
