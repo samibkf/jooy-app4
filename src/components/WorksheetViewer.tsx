@@ -174,7 +174,12 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({
           // Start video if available
           if (videoRef.current && audioAvailable) {
             videoRef.current.currentTime = 0;
-            videoRef.current.play().catch(err => console.error("Error playing video:", err));
+            videoRef.current.play().catch(err => {
+              // Suppress expected errors when video is removed from DOM
+              if (err.name !== 'AbortError' && !err.message.includes('media was removed from the document')) {
+                console.error("Error playing video:", err);
+              }
+            });
           }
           
           // Play audio for current step if available
@@ -290,9 +295,15 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({
     const handleAudioPlaying = () => {
       setIsAudioPlaying(true);
       
-      if (video.paused) {
+      // Check if video element still exists before attempting to play
+      if (videoRef.current && video.paused) {
         video.currentTime = 10;
-        video.play().catch(err => console.error("Error playing video:", err));
+        video.play().catch(err => {
+          // Suppress expected errors when video is removed from DOM or interrupted
+          if (err.name !== 'AbortError' && !err.message.includes('media was removed from the document')) {
+            console.error("Error playing video:", err);
+          }
+        });
       }
     };
     
@@ -399,7 +410,12 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({
       
       if (videoRef.current && audioAvailable) {
         videoRef.current.currentTime = 0;
-        videoRef.current.play().catch(err => console.error("Error playing video:", err));
+        videoRef.current.play().catch(err => {
+          // Suppress expected errors when video is removed from DOM
+          if (err.name !== 'AbortError' && !err.message.includes('media was removed from the document')) {
+            console.error("Error playing video:", err);
+          }
+        });
       }
       
       // Only try to play audio if it's available (based on initial check)
@@ -468,7 +484,12 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({
       } else {
         if (videoRef.current && audioAvailable) {
           videoRef.current.currentTime = 0;
-          videoRef.current.play().catch(err => console.error("Error playing video:", err));
+          videoRef.current.play().catch(err => {
+            // Suppress expected errors when video is removed from DOM
+            if (err.name !== 'AbortError' && !err.message.includes('media was removed from the document')) {
+              console.error("Error playing video:", err);
+            }
+          });
         }
         
         // Only try to play audio if it's available (based on initial check)
