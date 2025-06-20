@@ -6,9 +6,13 @@ import { Button } from "@/components/ui/button";
 import { useWorksheetData } from "@/hooks/useWorksheetData";
 import type { RegionData } from "@/types/worksheet";
 
-interface SessionRegionState {
-  activeRegion: RegionData | null;
+interface StoredRegionData {
   currentStepIndex: number;
+}
+
+interface SessionPageData {
+  lastActiveRegionId: string | null;
+  regions: Record<string, StoredRegionData>;
 }
 
 const WorksheetPage: React.FC = () => {
@@ -19,7 +23,9 @@ const WorksheetPage: React.FC = () => {
   const [isTextModeActive, setIsTextModeActive] = useState(false);
   const [currentActiveRegion, setCurrentActiveRegion] = useState<RegionData | null>(null);
   const [currentStepIndex, setCurrentStepIndex] = useState<number>(0);
-  const [initialRegionStateFromSession, setInitialRegionStateFromSession] = useState<SessionRegionState | null>(null);
+  const [allRegionsState, setAllRegionsState] = useState<Record<string, StoredRegionData>>({});
+  const [initialActiveRegion, setInitialActiveRegion] = useState<RegionData | null>(null);
+  const [initialCurrentStepIndex, setInitialCurrentStepIndex] = useState<number>(0);
   
   // Get initial state from navigation (when returning from AI chat)
   const locationState = location.state as { 
@@ -34,23 +40,53 @@ const WorksheetPage: React.FC = () => {
   useEffect(() => {
     if (!id || !n) return;
     
-    const sessionKey = `worksheet_region_state_${id}_${n}`;
+    const sessionKey = `worksheet_page_state_${id}_${n}`;
     
     try {
       const storedState = sessionStorage.getItem(sessionKey);
       if (storedState) {
-        const parsedState = JSON.parse(storedState) as SessionRegionState;
-        console.log('Loaded region state from session:', parsedState);
-        setInitialRegionStateFromSession(parsedState);
+        const parsedState = JSON.parse(storedState) as SessionPageData;
+        console.log('Loaded page state from session:', parsedState);
+        
+        // Set all regions state
+        setAllRegionsState(parsedState.regions || {});
+        
+        // If we have location state (from AI chat), prioritize that
+        if (locationState?.initialActiveRegion) {
+          setInitialActiveRegion(locationState.initialActiveRegion);
+          setInitialCurrentStepIndex(locationState.initialCurrentStepIndex || 0);
+        } else if (parsedState.lastActiveRegionId && worksheetData?.meta?.regions) {
+          // Find the last active region from the stored data
+          const lastActiveRegion = worksheetData.meta.regions.find(
+            region => region.id === parsedState.lastActiveRegionId
+          );
+          if (lastActiveRegion) {
+            const regionState = parsedState.regions[parsedState.lastActiveRegionId];
+            setInitialActiveRegion(lastActiveRegion);
+            setInitialCurrentStepIndex(regionState?.currentStepIndex || 0);
+          }
+        }
       } else {
         console.log('No session state found for:', sessionKey);
-        setInitialRegionStateFromSession(null);
+        setAllRegionsState({});
+        
+        // Use location state if available
+        if (locationState?.initialActiveRegion) {
+          setInitialActiveRegion(locationState.initialActiveRegion);
+          setInitialCurrentStepIndex(locationState.initialCurrentStepIndex || 0);
+        }
       }
     } catch (error) {
       console.warn('Failed to load session state:', error);
-      setInitialRegionStateFromSession(null);
+      setAllRegionsState({});
+      
+      // Use location state if available
+      if (locationState?.initialActiveRegion) {
+        setInitialActiveRegion(locationState.initialActiveRegion);
+        setInitialCurrentStepIndex(locationState.initialCurrentStepIndex || 0);
+      }
     }
-  }, [id, n]);
+  }, [id, n, locationState, worksheetData]);
   
   const goBack = () => {
     navigate("/");
@@ -60,25 +96,43 @@ const WorksheetPage: React.FC = () => {
     setCurrentActiveRegion(region);
     setCurrentStepIndex(stepIndex);
     
-    // Save to session storage
+    // Update all regions state and save to session storage
     if (id && n) {
-      const sessionKey = `worksheet_region_state_${id}_${n}`;
-      const stateToSave: SessionRegionState = {
-        activeRegion: region,
-        currentStepIndex: stepIndex
-      };
+      const sessionKey = `worksheet_page_state_${id}_${n}`;
       
-      try {
-        if (region) {
+      let updatedAllRegionsState = { ...allRegionsState };
+      
+      if (region) {
+        // Update the state for this specific region
+        updatedAllRegionsState[region.id] = {
+          currentStepIndex: stepIndex
+        };
+        setAllRegionsState(updatedAllRegionsState);
+        
+        const stateToSave: SessionPageData = {
+          lastActiveRegionId: region.id,
+          regions: updatedAllRegionsState
+        };
+        
+        try {
           sessionStorage.setItem(sessionKey, JSON.stringify(stateToSave));
-          console.log('Saved region state to session:', stateToSave);
-        } else {
-          // Remove from session storage when no active region
-          sessionStorage.removeItem(sessionKey);
-          console.log('Removed region state from session');
+          console.log('Saved page state to session:', stateToSave);
+        } catch (error) {
+          console.warn('Failed to save page state to session:', error);
         }
-      } catch (error) {
-        console.warn('Failed to save region state to session:', error);
+      } else {
+        // When no active region, just update the lastActiveRegionId but keep all region states
+        const stateToSave: SessionPageData = {
+          lastActiveRegionId: null,
+          regions: updatedAllRegionsState
+        };
+        
+        try {
+          sessionStorage.setItem(sessionKey, JSON.stringify(stateToSave));
+          console.log('Updated last active region in session:', stateToSave);
+        } catch (error) {
+          console.warn('Failed to update session state:', error);
+        }
       }
     }
   };
@@ -138,33 +192,6 @@ const WorksheetPage: React.FC = () => {
     );
   }
 
-  // Determine initial state with priority: location.state > session storage > defaults
-  const getInitialActiveRegion = () => {
-    if (locationState?.initialActiveRegion) {
-      console.log('Using initial active region from location state');
-      return locationState.initialActiveRegion;
-    }
-    if (initialRegionStateFromSession?.activeRegion) {
-      console.log('Using initial active region from session storage');
-      return initialRegionStateFromSession.activeRegion;
-    }
-    console.log('Using default initial active region (null)');
-    return null;
-  };
-
-  const getInitialCurrentStepIndex = () => {
-    if (locationState?.initialCurrentStepIndex !== undefined) {
-      console.log('Using initial step index from location state:', locationState.initialCurrentStepIndex);
-      return locationState.initialCurrentStepIndex;
-    }
-    if (initialRegionStateFromSession?.currentStepIndex !== undefined) {
-      console.log('Using initial step index from session storage:', initialRegionStateFromSession.currentStepIndex);
-      return initialRegionStateFromSession.currentStepIndex;
-    }
-    console.log('Using default initial step index (0)');
-    return 0;
-  };
-
   return (
     <div className="min-h-screen bg-gray-50">
       <WorksheetViewer 
@@ -173,9 +200,10 @@ const WorksheetPage: React.FC = () => {
         worksheetMeta={worksheetData.meta}
         pdfUrl={worksheetData.pdfUrl}
         onTextModeChange={setIsTextModeActive}
-        initialActiveRegion={getInitialActiveRegion()}
-        initialCurrentStepIndex={getInitialCurrentStepIndex()}
+        initialActiveRegion={initialActiveRegion}
+        initialCurrentStepIndex={initialCurrentStepIndex}
         onRegionStateChange={handleRegionStateChange}
+        allRegionsState={allRegionsState}
       />
       <AIChatButton 
         worksheetId={id} 

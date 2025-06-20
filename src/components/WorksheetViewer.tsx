@@ -9,15 +9,20 @@ import type { WorksheetMetadata, RegionData } from "@/types/worksheet";
 
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.js`;
 
+interface StoredRegionData {
+  currentStepIndex: number;
+}
+
 interface WorksheetViewerProps {
   worksheetId: string;
   pageIndex: number;
   worksheetMeta: WorksheetMetadata;
   pdfUrl: string;
   onTextModeChange?: (isTextMode: boolean) => void;
-  initialActiveRegion?: RegionData;
+  initialActiveRegion?: RegionData | null;
   initialCurrentStepIndex?: number;
   onRegionStateChange?: (region: RegionData | null, stepIndex: number) => void;
+  allRegionsState?: Record<string, StoredRegionData>;
 }
 
 const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ 
@@ -28,7 +33,8 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({
   onTextModeChange,
   initialActiveRegion,
   initialCurrentStepIndex = 0,
-  onRegionStateChange
+  onRegionStateChange,
+  allRegionsState = {}
 }) => {
   const [numPages, setNumPages] = useState<number | null>(null);
   
@@ -434,11 +440,18 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({
       return; // Do nothing if no description
     }
     
-    const newStepIndex = 0;
-    setCurrentStepIndex(newStepIndex);
+    // Check if this region has saved state in allRegionsState
+    const savedRegionState = allRegionsState[region.id];
+    const startingStepIndex = savedRegionState?.currentStepIndex || 0;
+    
+    console.log(`Region ${region.id} clicked. Saved state:`, savedRegionState, `Starting at step: ${startingStepIndex}`);
+    
+    setCurrentStepIndex(startingStepIndex);
     
     if (region.description && region.description.length > 0) {
-      setDisplayedMessages([region.description[0]]);
+      // Display messages up to the saved step index
+      const messagesToDisplay = region.description.slice(0, startingStepIndex + 1);
+      setDisplayedMessages(messagesToDisplay);
       
       if (videoRef.current && audioAvailable) {
         videoRef.current.currentTime = 0;
@@ -453,7 +466,7 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({
       // Only try to play audio if it's available (based on initial check)
       if (audioAvailable) {
         setTimeout(() => {
-          playAudioSegment(region.name, 0);
+          playAudioSegment(region.name, startingStepIndex);
         }, 500);
       }
     } else {
