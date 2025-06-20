@@ -505,46 +505,24 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({
     }
   };
   
-  const handleDoubleClick = () => {
-    if (activeRegion) {
-      const newTextMode = !isTextMode;
-      setIsTextMode(newTextMode);
-      
-      // Notify parent about text mode change
-      if (onTextModeChange) {
-        onTextModeChange(newTextMode);
-      }
-      
-      if (!newTextMode) {
-        if (audioRef.current) {
-          audioRef.current.pause();
-          audioRef.current.currentTime = 0;
-        }
-        
-        if (videoRef.current) {
-          videoRef.current.pause();
-        }
-        
-        setIsAudioPlaying(false);
-      } else {
-        if (videoRef.current && audioAvailable) {
-          videoRef.current.currentTime = 0;
-          videoRef.current.play().catch(err => {
-            // Suppress expected errors when video is removed from DOM
-            if (err.name !== 'AbortError' && !err.message.includes('media was removed from the document')) {
-              console.error("Error playing video:", err);
-            }
-          });
-        }
-        
-        // Only try to play audio if it's available (based on initial check)
-        if (activeRegion && audioAvailable) {
-          setTimeout(() => {
-            playAudioSegment(activeRegion.name, currentStepIndex);
-          }, 500);
-        }
-      }
+  const handleBackButtonClick = () => {
+    setIsTextMode(false);
+    
+    // Notify parent about text mode change
+    if (onTextModeChange) {
+      onTextModeChange(false);
     }
+    
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+    }
+    
+    if (videoRef.current) {
+      videoRef.current.pause();
+    }
+    
+    setIsAudioPlaying(false);
   };
 
   const handleVideoContextMenu = (e: React.MouseEvent) => {
@@ -557,13 +535,12 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({
     <div 
       className={`worksheet-container ${isTextMode ? 'text-mode' : ''}`} 
       ref={pdfContainerRef}
-      onDoubleClick={handleDoubleClick}
     >
       <audio ref={audioRef} className="hidden" />
       
       {isTextMode && (
         <Button
-          onClick={handleDoubleClick}
+          onClick={handleBackButtonClick}
           className="fixed top-4 left-4 z-70 rounded-full bg-gradient-to-r from-blue-500 to-blue-700 hover:from-blue-600 hover:to-blue-800 text-white shadow-lg"
           size="icon"
         >
