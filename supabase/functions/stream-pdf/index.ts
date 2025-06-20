@@ -14,6 +14,27 @@ serve(async (req) => {
   }
 
   try {
+    // Validate environment variables first
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+
+    if (!supabaseUrl || !supabaseKey) {
+      console.error('Missing environment variables:', {
+        hasUrl: !!supabaseUrl,
+        hasKey: !!supabaseKey
+      })
+      return new Response(
+        JSON.stringify({ 
+          error: 'Server configuration error: Missing required environment variables',
+          details: 'SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY not configured'
+        }),
+        { 
+          status: 500, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      )
+    }
+
     const url = new URL(req.url)
     const worksheetId = url.searchParams.get('id')
 
@@ -21,10 +42,7 @@ serve(async (req) => {
       throw new Error('worksheetId is a required query parameter.')
     }
 
-    const supabaseAdmin = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-    )
+    const supabaseAdmin = createClient(supabaseUrl, supabaseKey)
     
     // --- CORRECTED LOGIC FOR FLAT FILE STRUCTURE ---
     const filePath = `${worksheetId}.pdf`
@@ -71,7 +89,11 @@ serve(async (req) => {
     return new Response(await chunk.arrayBuffer(), { status: 206, headers })
 
   } catch (err) {
-    return new Response(JSON.stringify({ error: err.message }), {
+    console.error('Stream PDF error:', err)
+    return new Response(JSON.stringify({ 
+      error: err.message,
+      details: 'Failed to stream PDF file'
+    }), {
       status: 404, // Use 404 for "Not Found" errors
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
