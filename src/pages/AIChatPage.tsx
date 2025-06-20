@@ -41,6 +41,9 @@ const AIChatPage: React.FC = () => {
   const pdfUrl = locationState?.pdfUrl;
   const worksheetMeta = locationState?.worksheetMeta;
   
+  console.log('AIChatPage: Component loaded with fromTextMode:', fromTextMode);
+  console.log('AIChatPage: locationState:', locationState);
+  
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputMessage, setInputMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -306,6 +309,8 @@ Analyze the student's question carefully. If they're asking for a specific works
     );
   }
 
+  console.log('AIChatPage: Rendering SwitchModeButton with fromTextMode:', fromTextMode);
+
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       {/* Fixed Back Button */}
@@ -447,13 +452,16 @@ Analyze the student's question carefully. If they're asking for a specific works
 
       {/* Only render SwitchModeButton if user came from text mode */}
       {fromTextMode && (
-        <SwitchModeButton 
-          worksheetId={worksheetId!} 
-          pageNumber={parseInt(pageNumber!)} 
-          shouldDisplay={true}
-          initialActiveRegion={activeRegion}
-          initialCurrentStepIndex={currentStepIndex}
-        />
+        <>
+          {console.log('AIChatPage: Rendering SwitchModeButton because fromTextMode is true')}
+          <SwitchModeButton 
+            worksheetId={worksheetId!} 
+            pageNumber={parseInt(pageNumber!)} 
+            shouldDisplay={true}
+            initialActiveRegion={activeRegion}
+            initialCurrentStepIndex={currentStepIndex}
+          />
+        </>
       )}
     </div>
   );

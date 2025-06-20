@@ -125,6 +125,7 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({
       
       // Notify parent about text mode change
       if (onTextModeChange) {
+        console.log('WorksheetViewer: Notifying parent about text mode change (reset):', false);
         onTextModeChange(false);
       }
       
@@ -163,6 +164,7 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({
           
           // Notify parent about text mode change
           if (onTextModeChange) {
+            console.log('WorksheetViewer: Notifying parent about text mode change (restoration):', true);
             onTextModeChange(true);
           }
           
@@ -477,6 +479,7 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({
     
     // Notify parent about text mode change
     if (onTextModeChange) {
+      console.log('WorksheetViewer: Notifying parent about text mode change (region click):', true);
       onTextModeChange(true);
     }
   };
@@ -505,10 +508,12 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({
   };
   
   const handleBackButtonClick = () => {
+    console.log('WorksheetViewer: Back button clicked, setting text mode to false');
     setIsTextMode(false);
     
     // Notify parent about text mode change
     if (onTextModeChange) {
+      console.log('WorksheetViewer: Notifying parent about text mode change (back button):', false);
       onTextModeChange(false);
     }
     
