@@ -1,16 +1,32 @@
 import React, { useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import WorksheetViewer from "@/components/WorksheetViewer";
 import AIChatButton from "@/components/AIChatButton";
 import { Button } from "@/components/ui/button";
+import type { RegionData } from "@/types/worksheet";
 
 const WorksheetPage: React.FC = () => {
   const { id, n } = useParams<{ id: string; n: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
+  
   const [isTextModeActive, setIsTextModeActive] = useState(false);
+  const [currentActiveRegion, setCurrentActiveRegion] = useState<RegionData | null>(null);
+  const [currentStepIndex, setCurrentStepIndex] = useState<number>(0);
+  
+  // Get initial state from navigation (when returning from AI chat)
+  const locationState = location.state as { 
+    initialActiveRegion?: RegionData; 
+    initialCurrentStepIndex?: number; 
+  } | null;
   
   const goBack = () => {
     navigate("/");
+  };
+
+  const handleRegionStateChange = (region: RegionData | null, stepIndex: number) => {
+    setCurrentActiveRegion(region);
+    setCurrentStepIndex(stepIndex);
   };
 
   if (!id || !n) {
@@ -47,11 +63,16 @@ const WorksheetPage: React.FC = () => {
         worksheetId={id} 
         pageIndex={pageIndex} 
         onTextModeChange={setIsTextModeActive}
+        initialActiveRegion={locationState?.initialActiveRegion}
+        initialCurrentStepIndex={locationState?.initialCurrentStepIndex}
+        onRegionStateChange={handleRegionStateChange}
       />
       <AIChatButton 
         worksheetId={id} 
         pageNumber={pageIndex} 
         isTextModeActive={isTextModeActive}
+        activeRegion={currentActiveRegion}
+        currentStepIndex={currentStepIndex}
       />
     </div>
   );

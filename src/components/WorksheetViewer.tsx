@@ -13,9 +13,19 @@ interface WorksheetViewerProps {
   worksheetId: string;
   pageIndex: number;
   onTextModeChange?: (isTextMode: boolean) => void;
+  initialActiveRegion?: RegionData;
+  initialCurrentStepIndex?: number;
+  onRegionStateChange?: (region: RegionData | null, stepIndex: number) => void;
 }
 
-const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageIndex, onTextModeChange }) => {
+const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ 
+  worksheetId, 
+  pageIndex, 
+  onTextModeChange,
+  initialActiveRegion,
+  initialCurrentStepIndex = 0,
+  onRegionStateChange
+}) => {
   const [numPages, setNumPages] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -115,8 +125,45 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
     }
   }, [worksheetData, pageIndex]);
 
-  // Reset component state when worksheet or page changes
+  // Reset component state when worksheet or page changes, but restore initial state if provided
   useEffect(() => {
+    if (initialActiveRegion && regions.length > 0) {
+      // Find the matching region in the current regions
+      const matchingRegion = regions.find(region => region.id === initialActiveRegion.id);
+      if (matchingRegion) {
+        setActiveRegion(matchingRegion);
+        setCurrentStepIndex(initialCurrentStepIndex);
+        setIsTextMode(true);
+        
+        // Restore displayed messages up to the current step
+        if (matchingRegion.description && matchingRegion.description.length > 0) {
+          const messagesToDisplay = matchingRegion.description.slice(0, initialCurrentStepIndex + 1);
+          setDisplayedMessages(messagesToDisplay);
+          
+          // Notify parent about text mode change
+          if (onTextModeChange) {
+            onTextModeChange(true);
+          }
+          
+          // Start video if available
+          if (videoRef.current && audioAvailable) {
+            videoRef.current.currentTime = 0;
+            videoRef.current.play().catch(err => console.error("Error playing video:", err));
+          }
+          
+          // Play audio for current step if available
+          if (audioAvailable) {
+            setTimeout(() => {
+              playAudioSegment(matchingRegion.name, initialCurrentStepIndex);
+            }, 500);
+          }
+        }
+        
+        return; // Don't reset if we're restoring state
+      }
+    }
+    
+    // Normal reset behavior
     setActiveRegion(null);
     setCurrentStepIndex(0);
     setDisplayedMessages([]);
@@ -138,7 +185,14 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
       videoRef.current.pause();
       videoRef.current.currentTime = 0;
     }
-  }, [worksheetId, pageIndex, onTextModeChange]);
+  }, [worksheetId, pageIndex, initialActiveRegion, initialCurrentStepIndex, regions, onTextModeChange, audioAvailable]);
+
+  // Notify parent when region state changes
+  useEffect(() => {
+    if (onRegionStateChange) {
+      onRegionStateChange(activeRegion, currentStepIndex);
+    }
+  }, [activeRegion, currentStepIndex, onRegionStateChange]);
 
   const handleMessageClick = (index: number) => {
     if (!activeRegion || !audioAvailable) return;
@@ -308,7 +362,8 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
       return; // Do nothing if no description
     }
     
-    setCurrentStepIndex(0);
+    const newStepIndex = 0;
+    setCurrentStepIndex(newStepIndex);
     
     if (region.description && region.description.length > 0) {
       setDisplayedMessages([region.description[0]]);

@@ -12,6 +12,7 @@ import { ChevronLeft, Send, Loader2 } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
 import { supabase } from '../lib/supabaseClient';
 import SwitchModeButton from "@/components/SwitchModeButton";
+import type { RegionData } from "@/types/worksheet";
 
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.js`;
 
@@ -25,8 +26,16 @@ const AIChatPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   
-  // Get the fromTextMode state passed during navigation
-  const fromTextMode = (location.state as { fromTextMode?: boolean })?.fromTextMode || false;
+  // Get the state passed during navigation
+  const locationState = location.state as { 
+    fromTextMode?: boolean;
+    activeRegion?: RegionData;
+    currentStepIndex?: number;
+  } | null;
+  
+  const fromTextMode = locationState?.fromTextMode || false;
+  const activeRegion = locationState?.activeRegion;
+  const currentStepIndex = locationState?.currentStepIndex || 0;
   
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputMessage, setInputMessage] = useState("");
@@ -324,6 +333,8 @@ Please provide a helpful, educational response based on what you can see in the 
         worksheetId={worksheetId!} 
         pageNumber={parseInt(pageNumber!)} 
         shouldDisplay={fromTextMode}
+        initialActiveRegion={activeRegion}
+        initialCurrentStepIndex={currentStepIndex}
       />
     </div>
   );
