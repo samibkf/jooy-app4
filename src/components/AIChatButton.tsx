@@ -43,8 +43,10 @@ const AIChatButton: React.FC<AIChatButtonProps> = ({ worksheetId, pageNumber, is
       });
     }
     
-    // Navigate to chat page
-    navigate(`/chat/${worksheetId}/${pageNumber}`);
+    // Navigate to chat page with state indicating if coming from text mode
+    navigate(`/chat/${worksheetId}/${pageNumber}`, { 
+      state: { fromTextMode: isTextModeActive } 
+    });
   };
 
   const buttonClasses = cn(

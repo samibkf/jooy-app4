@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { Document, Page, pdfjs } from "react-pdf";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import ReactMarkdown from "react-markdown";
@@ -11,6 +11,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { ChevronLeft, Send, Loader2 } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
 import { supabase } from '../lib/supabaseClient';
+import SwitchModeButton from "@/components/SwitchModeButton";
 
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.js`;
 
@@ -22,6 +23,10 @@ interface ChatMessage {
 const AIChatPage: React.FC = () => {
   const { worksheetId, pageNumber } = useParams<{ worksheetId: string; pageNumber: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
+  
+  // Get the fromTextMode state passed during navigation
+  const fromTextMode = (location.state as { fromTextMode?: boolean })?.fromTextMode || false;
   
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputMessage, setInputMessage] = useState("");
@@ -313,6 +318,13 @@ Please provide a helpful, educational response based on what you can see in the 
         )}
         <canvas ref={canvasRef} />
       </div>
+
+      {/* Conditionally render SwitchModeButton */}
+      <SwitchModeButton 
+        worksheetId={worksheetId!} 
+        pageNumber={parseInt(pageNumber!)} 
+        shouldDisplay={fromTextMode}
+      />
     </div>
   );
 };
