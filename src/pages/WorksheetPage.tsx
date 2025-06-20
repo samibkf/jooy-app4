@@ -76,18 +76,23 @@ const WorksheetPage: React.FC = () => {
     if (!id || !n) return;
     
     const sessionKey = `worksheet_page_state_${id}_${n}`;
+    console.log('🔍 [DEBUG] Loading session state with key:', sessionKey);
     
     try {
       const storedState = sessionStorage.getItem(sessionKey);
+      console.log('🔍 [DEBUG] Raw stored state from sessionStorage:', storedState);
+      
       if (storedState) {
         const parsedState = JSON.parse(storedState) as SessionPageData;
-        console.log('Loaded page state from session:', parsedState);
+        console.log('🔍 [DEBUG] Parsed session state:', parsedState);
         
         // Set all regions state
         setAllRegionsState(parsedState.regions || {});
+        console.log('🔍 [DEBUG] Set allRegionsState to:', parsedState.regions || {});
         
         // If we have location state (from AI chat), prioritize that
         if (locationState?.initialActiveRegion) {
+          console.log('🔍 [DEBUG] Using location state - initialActiveRegion:', locationState.initialActiveRegion);
           setInitialActiveRegion(locationState.initialActiveRegion);
           setInitialCurrentStepIndex(locationState.initialCurrentStepIndex || 0);
         } else if (parsedState.lastActiveRegionId && worksheetData?.meta?.regions) {
@@ -97,26 +102,29 @@ const WorksheetPage: React.FC = () => {
           );
           if (lastActiveRegion) {
             const regionState = parsedState.regions[parsedState.lastActiveRegionId];
+            console.log('🔍 [DEBUG] Found last active region:', lastActiveRegion.id, 'with state:', regionState);
             setInitialActiveRegion(lastActiveRegion);
             setInitialCurrentStepIndex(regionState?.currentStepIndex || 0);
           }
         }
       } else {
-        console.log('No session state found for:', sessionKey);
+        console.log('🔍 [DEBUG] No session state found for key:', sessionKey);
         setAllRegionsState({});
         
         // Use location state if available
         if (locationState?.initialActiveRegion) {
+          console.log('🔍 [DEBUG] Using location state (no session) - initialActiveRegion:', locationState.initialActiveRegion);
           setInitialActiveRegion(locationState.initialActiveRegion);
           setInitialCurrentStepIndex(locationState.initialCurrentStepIndex || 0);
         }
       }
     } catch (error) {
-      console.warn('Failed to load session state:', error);
+      console.warn('🔍 [DEBUG] Failed to load session state:', error);
       setAllRegionsState({});
       
       // Use location state if available
       if (locationState?.initialActiveRegion) {
+        console.log('🔍 [DEBUG] Using location state (error fallback) - initialActiveRegion:', locationState.initialActiveRegion);
         setInitialActiveRegion(locationState.initialActiveRegion);
         setInitialCurrentStepIndex(locationState.initialCurrentStepIndex || 0);
       }
@@ -128,47 +136,70 @@ const WorksheetPage: React.FC = () => {
   };
 
   const handleRegionStateChange = (region: RegionData | null, stepIndex: number) => {
+    console.log('🔍 [DEBUG] handleRegionStateChange called with region:', region?.id, 'stepIndex:', stepIndex);
+    
     setCurrentActiveRegion(region);
     setCurrentStepIndex(stepIndex);
     
     // Update all regions state and save to session storage
     if (id && n) {
       const sessionKey = `worksheet_page_state_${id}_${n}`;
+      console.log('🔍 [DEBUG] Using session key for save:', sessionKey);
       
-      let updatedAllRegionsState = { ...allRegionsState };
-      
-      if (region) {
-        // Update the state for this specific region
-        updatedAllRegionsState[region.id] = {
-          currentStepIndex: stepIndex
-        };
-        setAllRegionsState(updatedAllRegionsState);
+      // Use functional update to ensure we have the latest state
+      setAllRegionsState(currentAllRegionsState => {
+        console.log('🔍 [DEBUG] Current allRegionsState before update:', currentAllRegionsState);
         
-        const stateToSave: SessionPageData = {
-          lastActiveRegionId: region.id,
-          regions: updatedAllRegionsState
-        };
+        let updatedAllRegionsState = { ...currentAllRegionsState };
         
-        try {
-          sessionStorage.setItem(sessionKey, JSON.stringify(stateToSave));
-          console.log('Saved page state to session:', stateToSave);
-        } catch (error) {
-          console.warn('Failed to save page state to session:', error);
+        if (region) {
+          // Update the state for this specific region
+          updatedAllRegionsState[region.id] = {
+            currentStepIndex: stepIndex
+          };
+          console.log('🔍 [DEBUG] Updated region state for:', region.id, 'with stepIndex:', stepIndex);
+          
+          const stateToSave: SessionPageData = {
+            lastActiveRegionId: region.id,
+            regions: updatedAllRegionsState
+          };
+          
+          console.log('🔍 [DEBUG] About to save state to sessionStorage:', stateToSave);
+          
+          try {
+            sessionStorage.setItem(sessionKey, JSON.stringify(stateToSave));
+            console.log('🔍 [DEBUG] Successfully saved state to sessionStorage with key:', sessionKey);
+            
+            // Verify the save by immediately reading it back
+            const verifyState = sessionStorage.getItem(sessionKey);
+            console.log('🔍 [DEBUG] Verification - state read back from sessionStorage:', verifyState);
+          } catch (error) {
+            console.warn('🔍 [DEBUG] Failed to save page state to session:', error);
+          }
+        } else {
+          // When no active region, just update the lastActiveRegionId but keep all region states
+          const stateToSave: SessionPageData = {
+            lastActiveRegionId: null,
+            regions: updatedAllRegionsState
+          };
+          
+          console.log('🔍 [DEBUG] About to save state (no active region) to sessionStorage:', stateToSave);
+          
+          try {
+            sessionStorage.setItem(sessionKey, JSON.stringify(stateToSave));
+            console.log('🔍 [DEBUG] Successfully updated last active region in session with key:', sessionKey);
+            
+            // Verify the save by immediately reading it back
+            const verifyState = sessionStorage.getItem(sessionKey);
+            console.log('🔍 [DEBUG] Verification - state read back from sessionStorage:', verifyState);
+          } catch (error) {
+            console.warn('🔍 [DEBUG] Failed to update session state:', error);
+          }
         }
-      } else {
-        // When no active region, just update the lastActiveRegionId but keep all region states
-        const stateToSave: SessionPageData = {
-          lastActiveRegionId: null,
-          regions: updatedAllRegionsState
-        };
         
-        try {
-          sessionStorage.setItem(sessionKey, JSON.stringify(stateToSave));
-          console.log('Updated last active region in session:', stateToSave);
-        } catch (error) {
-          console.warn('Failed to update session state:', error);
-        }
-      }
+        console.log('🔍 [DEBUG] Returning updated allRegionsState:', updatedAllRegionsState);
+        return updatedAllRegionsState;
+      });
     }
   };
 

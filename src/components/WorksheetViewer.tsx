@@ -436,6 +436,8 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({
   };
   
   const handleRegionClick = (region: RegionData) => {
+    console.log('🔍 [DEBUG] Region clicked:', region.id);
+    
     // Check if region has no description or empty description
     if (!region.description || region.description.length === 0) {
       return; // Do nothing if no description
@@ -445,7 +447,7 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({
     const savedRegionState = allRegionsState[region.id];
     const startingStepIndex = savedRegionState?.currentStepIndex || 0;
     
-    console.log(`Region ${region.id} clicked. Saved state:`, savedRegionState, `Starting at step: ${startingStepIndex}`);
+    console.log(`🔍 [DEBUG] Region ${region.id} clicked. Saved state:`, savedRegionState, `Starting at step: ${startingStepIndex}`);
     
     setCurrentStepIndex(startingStepIndex);
     
@@ -491,6 +493,8 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({
       }
       
       const nextStepIndex = currentStepIndex + 1;
+      console.log('🔍 [DEBUG] Advancing to next step:', nextStepIndex, 'for region:', activeRegion.id);
+      
       setCurrentStepIndex(nextStepIndex);
       
       setDisplayedMessages(prevMessages => [
