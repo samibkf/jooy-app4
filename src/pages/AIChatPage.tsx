@@ -96,7 +96,7 @@ const AIChatPage: React.FC = () => {
       // Add initial AI message
       setMessages([{
         role: 'assistant',
-        content: `Hello! I can see page ${pageNumber} of your worksheet. I'm ready to help you understand the content, answer questions, or provide explanations about what's shown on this page. What would you like to know?`
+        content: `How can I help you with this worksheet page?`
       }]);
     }).catch((error: any) => {
       console.error('Error rendering PDF page:', error);
@@ -140,15 +140,17 @@ const AIChatPage: React.FC = () => {
         .map(msg => `User: ${msg.content}`)
         .join('\n');
 
-      // Create the prompt with context
+      // Create the prompt with context and language instruction
       const prompt = `You are an AI assistant helping a student understand their worksheet. You can see the worksheet page in the image provided. 
+
+IMPORTANT: Please respond in English (the same language as the worksheet content).
 
 Previous conversation:
 ${conversationHistory}
 
 Current question: ${userMessage}
 
-Please provide a helpful, educational response based on what you can see in the worksheet image and the student's question. Be encouraging and explain concepts clearly.`;
+Please provide a helpful, educational response based on what you can see in the worksheet image and the student's question. Be encouraging and explain concepts clearly. Always respond in English.`;
 
       // Convert base64 image to the format expected by Gemini
       const base64Data = pageImage.split(',')[1]; // Remove data:image/png;base64, prefix
@@ -224,49 +226,7 @@ Please provide a helpful, educational response based on what you can see in the 
         </div>
       </div>
 
-      <div className="flex-1 flex gap-4 p-4 max-w-7xl mx-auto w-full">
-        {/* Page Preview */}
-        <div className="w-80 flex-shrink-0">
-          <Card className="h-full">
-            <CardHeader>
-              <CardTitle className="text-lg">Page Preview</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {isGeneratingImage ? (
-                <div className="flex items-center justify-center h-64">
-                  <Loader2 className="h-8 w-8 animate-spin" />
-                  <span className="ml-2">Generating page image...</span>
-                </div>
-              ) : pageImage ? (
-                <img 
-                  src={pageImage} 
-                  alt={`Page ${pageNumber}`}
-                  className="w-full h-auto border rounded-lg shadow-sm"
-                />
-              ) : (
-                <div className="flex items-center justify-center h-64 text-gray-500">
-                  Failed to load page image
-                </div>
-              )}
-              
-              {/* Hidden PDF rendering */}
-              {pdfUrl && (
-                <div className="hidden">
-                  <Document file={pdfUrl}>
-                    <Page
-                      pageNumber={parseInt(pageNumber)}
-                      onLoadSuccess={onPageLoadSuccess}
-                      renderTextLayer={false}
-                      renderAnnotationLayer={false}
-                    />
-                  </Document>
-                  <canvas ref={canvasRef} />
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-
+      <div className="flex-1 flex gap-4 p-4 max-w-4xl mx-auto w-full">
         {/* Chat Interface */}
         <div className="flex-1 flex flex-col">
           <Card className="flex-1 flex flex-col">
@@ -285,7 +245,7 @@ Please provide a helpful, educational response based on what you can see in the 
                       <div
                         className={`max-w-[80%] p-3 rounded-lg ${
                           message.role === 'user'
-                            ? 'bg-blue-500 text-white'
+                            ? 'bg-gradient-to-r from-blue-500 to-blue-700 text-white'
                             : 'bg-gray-100 text-gray-900'
                         }`}
                       >
@@ -318,6 +278,7 @@ Please provide a helpful, educational response based on what you can see in the 
                   onClick={handleSendMessage}
                   disabled={isLoading || !inputMessage.trim() || isGeneratingImage}
                   size="icon"
+                  className="bg-gradient-to-r from-blue-500 to-blue-700 hover:from-blue-600 hover:to-blue-800"
                 >
                   <Send className="h-4 w-4" />
                 </Button>
@@ -325,6 +286,21 @@ Please provide a helpful, educational response based on what you can see in the 
             </CardContent>
           </Card>
         </div>
+      </div>
+
+      {/* Hidden PDF rendering for image generation */}
+      <div className="hidden">
+        {pdfUrl && (
+          <Document file={pdfUrl}>
+            <Page
+              pageNumber={parseInt(pageNumber)}
+              onLoadSuccess={onPageLoadSuccess}
+              renderTextLayer={false}
+              renderAnnotationLayer={false}
+            />
+          </Document>
+        )}
+        <canvas ref={canvasRef} />
       </div>
     </div>
   );

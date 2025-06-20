@@ -48,7 +48,7 @@ const AIChatButton: React.FC<AIChatButtonProps> = ({ worksheetId, pageNumber }) 
   return (
     <Button
       onClick={handleClick}
-      className="fixed bottom-4 left-4 z-50 rounded-full bg-gradient-to-r from-purple-500 to-purple-700 hover:from-purple-600 hover:to-purple-800 text-white shadow-lg"
+      className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 rounded-full bg-gradient-to-r from-blue-500 to-blue-700 hover:from-blue-600 hover:to-blue-800 text-white shadow-lg"
       size="icon"
       aria-label="AI Chat"
     >
