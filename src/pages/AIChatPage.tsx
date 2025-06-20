@@ -300,23 +300,24 @@ Please provide a helpful, educational response based on what you can see in the 
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
-      {/* Header */}
-      <div className="bg-white border-b border-gray-200 p-4 flex items-center gap-4">
-        <Button
-          onClick={goBack}
-          variant="ghost"
-          size="icon"
-          className="rounded-full"
-        >
-          <ChevronLeft className="h-5 w-5" />
-        </Button>
-        <div className="flex-1">
+      {/* Fixed Back Button */}
+      <Button
+        onClick={goBack}
+        className="fixed top-4 left-4 z-70 rounded-full bg-gradient-to-r from-blue-500 to-blue-700 hover:from-blue-600 hover:to-blue-800 text-white shadow-lg"
+        size="icon"
+      >
+        <ChevronLeft className="h-5 w-5" />
+      </Button>
+
+      {/* Fixed Header */}
+      <div className="fixed top-0 left-0 right-0 z-60 bg-white border-b border-gray-200 p-4 flex items-center gap-4">
+        <div className="flex-1 text-center">
           <h1 className="text-xl font-semibold">AI Chat - Page {pageNumber}</h1>
           <p className="text-sm text-gray-600">Worksheet: {worksheetId}</p>
         </div>
       </div>
 
-      <div className="flex-1 flex gap-4 p-4 max-w-4xl mx-auto w-full">
+      <div className="flex-1 flex gap-4 p-4 pt-20 max-w-4xl mx-auto w-full">
         {/* Chat Interface */}
         <div className="flex-1 flex flex-col">
           <Card className="flex-1 flex flex-col">
