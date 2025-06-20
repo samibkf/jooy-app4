@@ -112,8 +112,6 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({
     const pageChanged = prevPageIndexRef.current !== pageIndex;
     
     if (worksheetChanged || pageChanged) {
-      console.log('Resetting component state due to worksheet/page change:', { worksheetChanged, pageChanged });
-      
       // Reset all state to defaults
       setActiveRegion(null);
       setCurrentStepIndex(0);
@@ -125,7 +123,6 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({
       
       // Notify parent about text mode change
       if (onTextModeChange) {
-        console.log('WorksheetViewer: Notifying parent about text mode change (reset):', false);
         onTextModeChange(false);
       }
       
@@ -148,8 +145,6 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({
   // Apply initial state restoration (only once when initialActiveRegion is provided and not yet restored)
   useEffect(() => {
     if (initialActiveRegion && regions.length > 0 && !hasRestoredInitialState) {
-      console.log('Applying initial state restoration:', { initialActiveRegion, initialCurrentStepIndex });
-      
       // Find the matching region in the current regions
       const matchingRegion = regions.find(region => region.id === initialActiveRegion.id);
       if (matchingRegion) {
@@ -164,7 +159,6 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({
           
           // Notify parent about text mode change
           if (onTextModeChange) {
-            console.log('WorksheetViewer: Notifying parent about text mode change (restoration):', true);
             onTextModeChange(true);
           }
           
@@ -174,7 +168,7 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({
             videoRef.current.play().catch(err => {
               // Suppress expected errors when video is removed from DOM
               if (err.name !== 'AbortError' && !err.message.includes('media was removed from the document')) {
-                console.error("Error playing video:", err);
+                // Suppress non-debug logs
               }
             });
           }
@@ -196,11 +190,8 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({
   // Initial audio availability check - performed once when worksheet/page loads
   useEffect(() => {
     if (!audioCheckPerformed && regions.length > 0) {
-      console.log('Performing initial audio availability check...');
-      
       const firstRegion = regions[0];
       if (!firstRegion || !firstRegion.name) {
-        console.warn('No valid region found for audio check');
         setAudioAvailable(false);
         setAudioCheckPerformed(true);
         return;
@@ -216,7 +207,6 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({
         if (checkCompleted) return;
         checkCompleted = true;
         
-        console.log(`Audio availability check completed: ${available ? 'Available' : 'Not available'}`);
         setAudioAvailable(available);
         setAudioCheckPerformed(true);
         
@@ -239,7 +229,6 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({
       
       // Set timeout to handle cases where neither event fires
       const timeout = setTimeout(() => {
-        console.warn('Audio availability check timed out, assuming unavailable');
         completeCheck(false);
       }, 3000); // 3 second timeout
       
@@ -340,7 +329,7 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({
         video.play().catch(err => {
           // Suppress expected errors when video is removed from DOM or interrupted
           if (err.name !== 'AbortError' && !err.message.includes('media was removed from the document')) {
-            console.error("Error playing video:", err);
+            // Suppress non-debug logs
           }
         });
       }
@@ -386,7 +375,6 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({
   };
 
   const onDocumentLoadError = (err: Error) => {
-    console.error("Error loading PDF:", err);
     toast({
       title: "PDF Error",
       description: "PDF not found or unable to load",
@@ -425,12 +413,10 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({
     audioRef.current.src = audioPath;
     
     audioRef.current.onerror = () => {
-      console.warn(`Audio file not found: ${audioPath}`);
       setIsAudioPlaying(false);
     };
     
     audioRef.current.play().catch(err => {
-      console.warn("Error playing audio:", err);
       setIsAudioPlaying(false);
     });
   };
@@ -461,7 +447,7 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({
         videoRef.current.play().catch(err => {
           // Suppress expected errors when video is removed from DOM
           if (err.name !== 'AbortError' && !err.message.includes('media was removed from the document')) {
-            console.error("Error playing video:", err);
+            // Suppress non-debug logs
           }
         });
       }
@@ -481,7 +467,6 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({
     
     // Notify parent about text mode change
     if (onTextModeChange) {
-      console.log('WorksheetViewer: Notifying parent about text mode change (region click):', true);
       onTextModeChange(true);
     }
   };
@@ -512,12 +497,10 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({
   };
   
   const handleBackButtonClick = () => {
-    console.log('WorksheetViewer: Back button clicked, setting text mode to false');
     setIsTextMode(false);
     
     // Notify parent about text mode change
     if (onTextModeChange) {
-      console.log('WorksheetViewer: Notifying parent about text mode change (back button):', false);
       onTextModeChange(false);
     }
     

@@ -65,8 +65,6 @@ const AIChatButton: React.FC<AIChatButtonProps> = ({
       parsedState: currentSessionState ? JSON.parse(currentSessionState) : null
     });
     
-    console.log('AIChatButton: Navigating to AI chat with isTextModeActive:', isTextModeActive);
-    
     // Navigate to chat page with state including worksheet data
     navigate(`/chat/${worksheetId}/${pageNumber}`, { 
       state: { 

@@ -41,9 +41,6 @@ const AIChatPage: React.FC = () => {
   const pdfUrl = locationState?.pdfUrl;
   const worksheetMeta = locationState?.worksheetMeta;
   
-  console.log('AIChatPage: Component loaded with fromTextMode:', fromTextMode);
-  console.log('AIChatPage: locationState:', locationState);
-  
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputMessage, setInputMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -78,7 +75,7 @@ const AIChatPage: React.FC = () => {
         }
       }
     } catch (error) {
-      console.warn('Failed to parse stored chat history:', error);
+      // Suppress non-debug logs
     }
     
     // Set default AI welcome message if no stored history
@@ -97,7 +94,7 @@ const AIChatPage: React.FC = () => {
     try {
       localStorage.setItem(chatHistoryKey, JSON.stringify(messages));
     } catch (error) {
-      console.warn('Failed to save chat history to localStorage:', error);
+      // Suppress non-debug logs
     }
   }, [messages, worksheetId, pageNumber]);
 
@@ -125,17 +122,15 @@ const AIChatPage: React.FC = () => {
     try {
       const cachedImage = sessionStorage.getItem(imageKey);
       if (cachedImage) {
-        console.log('Using cached worksheet page image');
         setPageImage(cachedImage);
         setIsGeneratingImage(false);
         return;
       }
     } catch (error) {
-      console.warn('Failed to load cached image from sessionStorage:', error);
+      // Suppress non-debug logs
     }
     
     // If no cached image found, generate a new one
-    console.log('Generating new worksheet page image');
     setIsGeneratingImage(true);
   }, [pdfUrl, pageNumber, worksheetId]);
 
@@ -167,9 +162,7 @@ const AIChatPage: React.FC = () => {
       const imageKey = `worksheetPageImage_${worksheetId}_${pageNumber}`;
       try {
         sessionStorage.setItem(imageKey, imageDataUrl);
-        console.log('Cached worksheet page image for future use');
       } catch (error) {
-        console.warn('Failed to cache image in sessionStorage:', error);
         // If sessionStorage is full, try to clear old worksheet images
         try {
           // Clear old worksheet page images to make space
@@ -181,13 +174,11 @@ const AIChatPage: React.FC = () => {
           }
           // Try to save again after cleanup
           sessionStorage.setItem(imageKey, imageDataUrl);
-          console.log('Cached worksheet page image after cleanup');
         } catch (cleanupError) {
-          console.warn('Failed to cache image even after cleanup:', cleanupError);
+          // Suppress non-debug logs
         }
       }
     }).catch((error: any) => {
-      console.error('Error rendering PDF page:', error);
       setIsGeneratingImage(false);
       toast({
         title: "Error",
@@ -275,7 +266,6 @@ Analyze the student's question carefully. If they're asking for a specific works
       });
 
     } catch (error) {
-      console.error('Error calling Gemini API:', error);
       toast({
         title: "AI Error",
         description: "Failed to get response from AI. Please check your API key and try again.",
@@ -335,8 +325,6 @@ Analyze the student's question carefully. If they're asking for a specific works
       </div>
     );
   }
-
-  console.log('AIChatPage: Rendering SwitchModeButton with fromTextMode:', fromTextMode);
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -479,16 +467,13 @@ Analyze the student's question carefully. If they're asking for a specific works
 
       {/* Only render SwitchModeButton if user came from text mode */}
       {fromTextMode && (
-        <>
-          {console.log('AIChatPage: Rendering SwitchModeButton because fromTextMode is true')}
-          <SwitchModeButton 
-            worksheetId={worksheetId!} 
-            pageNumber={parseInt(pageNumber!)} 
-            shouldDisplay={true}
-            initialActiveRegion={activeRegion}
-            initialCurrentStepIndex={currentStepIndex}
-          />
-        </>
+        <SwitchModeButton 
+          worksheetId={worksheetId!} 
+          pageNumber={parseInt(pageNumber!)} 
+          shouldDisplay={true}
+          initialActiveRegion={activeRegion}
+          initialCurrentStepIndex={currentStepIndex}
+        />
       )}
     </div>
   );

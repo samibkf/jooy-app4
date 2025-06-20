@@ -5,7 +5,6 @@
  */
 export function getTextDirection(text: string): 'rtl' | 'ltr' {
   if (!text || typeof text !== 'string') {
-    console.log('getTextDirection: Input is empty or not a string, defaulting to LTR.');
     return 'ltr'; // Default to LTR for empty or invalid text
   }
 
@@ -95,25 +94,13 @@ export function getTextDirection(text: string): 'rtl' | 'ltr' {
   // Calculate totals and percentages
   const totalLetters = rtlCount + ltrCount;
   if (totalLetters === 0) {
-    console.log(`getTextDirection: No letters found in "${text}", cleanText: "${cleanText}", defaulting to LTR.`);
     return 'ltr'; // Default to LTR if no letters found
   }
 
   const rtlPercentage = rtlCount / totalLetters;
-  const ltrPercentage = ltrCount / totalLetters;
   
   // If we have RTL characters and they make up more than 30% of the text, consider it RTL
   const detectedDirection = rtlPercentage > 0.3 ? 'rtl' : 'ltr';
-
-  console.log(`getTextDirection:
-    Original Text: "${text}"
-    Cleaned Text: "${cleanText}"
-    RTL Count: ${rtlCount}
-    LTR Count: ${ltrCount}
-    Total Letters: ${totalLetters}
-    RTL Percentage: ${rtlPercentage.toFixed(2)}
-    LTR Percentage: ${ltrPercentage.toFixed(2)}
-    Detected Direction: ${detectedDirection}`);
 
   return detectedDirection;
 }
