@@ -69,7 +69,7 @@ const AIChatButton: React.FC<AIChatButtonProps> = ({
   };
 
   const buttonClasses = cn(
-    "fixed bottom-4 z-50 w-14 h-14 p-0 rounded-full bg-gradient-to-r from-blue-500 to-blue-700 hover:from-blue-600 hover:to-blue-800 text-white shadow-lg",
+    "fixed bottom-4 z-50 rounded-full bg-gradient-to-r from-blue-500 to-blue-700 hover:from-blue-600 hover:to-blue-800 text-white shadow-lg",
     isTextModeActive ? "left-4" : "left-1/2 -translate-x-1/2"
   );
 
@@ -77,9 +77,10 @@ const AIChatButton: React.FC<AIChatButtonProps> = ({
     <Button
       onClick={handleClick}
       className={buttonClasses}
+      size="icon"
       aria-label="AI Chat"
     >
-      <MessageSquareText className="h-6 w-6" />
+      <MessageSquareText className="h-5 w-5" />
     </Button>
   );
 };
