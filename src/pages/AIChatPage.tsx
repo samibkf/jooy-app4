@@ -445,14 +445,16 @@ Analyze the student's question carefully. If they're asking for a specific works
         </div>
       )}
 
-      {/* Conditionally render SwitchModeButton */}
-      <SwitchModeButton 
-        worksheetId={worksheetId!} 
-        pageNumber={parseInt(pageNumber!)} 
-        shouldDisplay={fromTextMode}
-        initialActiveRegion={activeRegion}
-        initialCurrentStepIndex={currentStepIndex}
-      />
+      {/* Only render SwitchModeButton if user came from text mode */}
+      {fromTextMode && (
+        <SwitchModeButton 
+          worksheetId={worksheetId!} 
+          pageNumber={parseInt(pageNumber!)} 
+          shouldDisplay={true}
+          initialActiveRegion={activeRegion}
+          initialCurrentStepIndex={currentStepIndex}
+        />
+      )}
     </div>
   );
 };
