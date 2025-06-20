@@ -48,6 +48,13 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({
   const [audioAvailable, setAudioAvailable] = useState<boolean>(true);
   const [audioCheckPerformed, setAudioCheckPerformed] = useState<boolean>(false);
   
+  // State to track if initial state has been applied
+  const [initialStateApplied, setInitialStateApplied] = useState<boolean>(false);
+  
+  // Refs to track previous values for change detection
+  const prevWorksheetIdRef = useRef<string>(worksheetId);
+  const prevPageIndexRef = useRef<number>(pageIndex);
+  
   const pdfContainerRef = useRef<HTMLDivElement>(null);
   const pdfRef = useRef<HTMLCanvasElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -92,12 +99,105 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({
     }
   }, [worksheetMeta, pageIndex]);
 
+  // Reset component state when worksheet or page changes, or when initialActiveRegion is no longer provided
+  useEffect(() => {
+    const worksheetChanged = prevWorksheetIdRef.current !== worksheetId;
+    const pageChanged = prevPageIndexRef.current !== pageIndex;
+    const noInitialRegion = !initialActiveRegion;
+    
+    if (worksheetChanged || pageChanged || (noInitialRegion && initialStateApplied)) {
+      console.log('Resetting component state due to:', { worksheetChanged, pageChanged, noInitialRegion });
+      
+      // Reset all state to defaults
+      setActiveRegion(null);
+      setCurrentStepIndex(0);
+      setDisplayedMessages([]);
+      setIsTextMode(false);
+      setIsAudioPlaying(false);
+      setAudioCheckPerformed(false);
+      setInitialStateApplied(false);
+      
+      // Notify parent about text mode change
+      if (onTextModeChange) {
+        onTextModeChange(false);
+      }
+      
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.currentTime = 0;
+      }
+      
+      if (videoRef.current) {
+        videoRef.current.pause();
+        videoRef.current.currentTime = 0;
+      }
+      
+      // Update refs for next comparison
+      prevWorksheetIdRef.current = worksheetId;
+      prevPageIndexRef.current = pageIndex;
+    }
+  }, [worksheetId, pageIndex, initialActiveRegion, initialStateApplied, onTextModeChange]);
+
+  // Apply initial state restoration (only once when initialActiveRegion is provided and not yet applied)
+  useEffect(() => {
+    if (initialActiveRegion && regions.length > 0 && !initialStateApplied) {
+      console.log('Applying initial state restoration:', { initialActiveRegion, initialCurrentStepIndex });
+      
+      // Find the matching region in the current regions
+      const matchingRegion = regions.find(region => region.id === initialActiveRegion.id);
+      if (matchingRegion) {
+        setActiveRegion(matchingRegion);
+        setCurrentStepIndex(initialCurrentStepIndex);
+        setIsTextMode(true);
+        
+        // Restore displayed messages up to the current step
+        if (matchingRegion.description && matchingRegion.description.length > 0) {
+          const messagesToDisplay = matchingRegion.description.slice(0, initialCurrentStepIndex + 1);
+          setDisplayedMessages(messagesToDisplay);
+          
+          // Notify parent about text mode change
+          if (onTextModeChange) {
+            onTextModeChange(true);
+          }
+          
+          // Start video if available
+          if (videoRef.current && audioAvailable) {
+            videoRef.current.currentTime = 0;
+            videoRef.current.play().catch(err => {
+              // Suppress expected errors when video is removed from DOM
+              if (err.name !== 'AbortError' && !err.message.includes('media was removed from the document')) {
+                console.error("Error playing video:", err);
+              }
+            });
+          }
+          
+          // Play audio for current step if available
+          if (audioAvailable) {
+            setTimeout(() => {
+              playAudioSegment(matchingRegion.name, initialCurrentStepIndex);
+            }, 500);
+          }
+        }
+        
+        // Mark initial state as applied
+        setInitialStateApplied(true);
+      }
+    }
+  }, [initialActiveRegion, initialCurrentStepIndex, regions, initialStateApplied, onTextModeChange, audioAvailable]);
+
   // Initial audio availability check - performed once when worksheet/page loads
   useEffect(() => {
     if (!audioCheckPerformed && regions.length > 0) {
       console.log('Performing initial audio availability check...');
       
       const firstRegion = regions[0];
+      if (!firstRegion || !firstRegion.name) {
+        console.warn('No valid region found for audio check');
+        setAudioAvailable(false);
+        setAudioCheckPerformed(true);
+        return;
+      }
+      
       const audioPath = `/audio/${worksheetId}/${firstRegion.name}_1.mp3`;
       
       // Create a temporary audio object for testing
@@ -150,75 +250,6 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({
       };
     }
   }, [worksheetId, pageIndex, regions, audioCheckPerformed]);
-
-  // Reset component state when worksheet or page changes, but restore initial state if provided
-  useEffect(() => {
-    if (initialActiveRegion && regions.length > 0) {
-      // Find the matching region in the current regions
-      const matchingRegion = regions.find(region => region.id === initialActiveRegion.id);
-      if (matchingRegion) {
-        setActiveRegion(matchingRegion);
-        setCurrentStepIndex(initialCurrentStepIndex);
-        setIsTextMode(true);
-        
-        // Restore displayed messages up to the current step
-        if (matchingRegion.description && matchingRegion.description.length > 0) {
-          const messagesToDisplay = matchingRegion.description.slice(0, initialCurrentStepIndex + 1);
-          setDisplayedMessages(messagesToDisplay);
-          
-          // Notify parent about text mode change
-          if (onTextModeChange) {
-            onTextModeChange(true);
-          }
-          
-          // Start video if available
-          if (videoRef.current && audioAvailable) {
-            videoRef.current.currentTime = 0;
-            videoRef.current.play().catch(err => {
-              // Suppress expected errors when video is removed from DOM
-              if (err.name !== 'AbortError' && !err.message.includes('media was removed from the document')) {
-                console.error("Error playing video:", err);
-              }
-            });
-          }
-          
-          // Play audio for current step if available
-          if (audioAvailable) {
-            setTimeout(() => {
-              playAudioSegment(matchingRegion.name, initialCurrentStepIndex);
-            }, 500);
-          }
-        }
-        
-        return; // Don't reset if we're restoring state
-      }
-    }
-    
-    // Normal reset behavior - only if no activeRegion is currently set
-    if (!activeRegion) {
-      setActiveRegion(null);
-      setCurrentStepIndex(0);
-      setDisplayedMessages([]);
-      setIsTextMode(false);
-      setIsAudioPlaying(false);
-      setAudioCheckPerformed(false); // Reset audio check flag for new worksheet/page
-      
-      // Notify parent about text mode change
-      if (onTextModeChange) {
-        onTextModeChange(false);
-      }
-      
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current.currentTime = 0;
-      }
-      
-      if (videoRef.current) {
-        videoRef.current.pause();
-        videoRef.current.currentTime = 0;
-      }
-    }
-  }, [worksheetId, pageIndex, initialActiveRegion, initialCurrentStepIndex, regions, onTextModeChange, audioAvailable, activeRegion]);
 
   // Notify parent when region state changes
   useEffect(() => {
