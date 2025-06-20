@@ -163,29 +163,31 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({
       }
     }
     
-    // Normal reset behavior
-    setActiveRegion(null);
-    setCurrentStepIndex(0);
-    setDisplayedMessages([]);
-    setIsTextMode(false);
-    setIsAudioPlaying(false);
-    setAudioAvailable(true);
-    
-    // Notify parent about text mode change
-    if (onTextModeChange) {
-      onTextModeChange(false);
+    // Normal reset behavior - only if no activeRegion is currently set
+    if (!activeRegion) {
+      setActiveRegion(null);
+      setCurrentStepIndex(0);
+      setDisplayedMessages([]);
+      setIsTextMode(false);
+      setIsAudioPlaying(false);
+      setAudioAvailable(true);
+      
+      // Notify parent about text mode change
+      if (onTextModeChange) {
+        onTextModeChange(false);
+      }
+      
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.currentTime = 0;
+      }
+      
+      if (videoRef.current) {
+        videoRef.current.pause();
+        videoRef.current.currentTime = 0;
+      }
     }
-    
-    if (audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current.currentTime = 0;
-    }
-    
-    if (videoRef.current) {
-      videoRef.current.pause();
-      videoRef.current.currentTime = 0;
-    }
-  }, [worksheetId, pageIndex, initialActiveRegion, initialCurrentStepIndex, regions, onTextModeChange, audioAvailable]);
+  }, [worksheetId, pageIndex, initialActiveRegion, initialCurrentStepIndex, regions, onTextModeChange, audioAvailable, activeRegion]);
 
   // Notify parent when region state changes
   useEffect(() => {
