@@ -79,7 +79,7 @@ const AIChatButton: React.FC<AIChatButtonProps> = ({
       className={buttonClasses}
       aria-label="AI Chat"
     >
-      <MessageSquareText className={isTextModeActive ? "h-5 w-5" : "h-6 w-6"} />
+      <MessageSquareText className={isTextModeActive ? "h-5 w-5" : "h-8 w-8"} />
     </Button>
   );
 };
