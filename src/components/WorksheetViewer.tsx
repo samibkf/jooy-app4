@@ -12,9 +12,10 @@ pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/b
 interface WorksheetViewerProps {
   worksheetId: string;
   pageIndex: number;
+  onTextModeChange?: (isTextMode: boolean) => void;
 }
 
-const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageIndex }) => {
+const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageIndex, onTextModeChange }) => {
   const [numPages, setNumPages] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -123,6 +124,11 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
     setIsAudioPlaying(false);
     setAudioAvailable(true);
     
+    // Notify parent about text mode change
+    if (onTextModeChange) {
+      onTextModeChange(false);
+    }
+    
     if (audioRef.current) {
       audioRef.current.pause();
       audioRef.current.currentTime = 0;
@@ -132,7 +138,7 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
       videoRef.current.pause();
       videoRef.current.currentTime = 0;
     }
-  }, [worksheetId, pageIndex]);
+  }, [worksheetId, pageIndex, onTextModeChange]);
 
   const handleMessageClick = (index: number) => {
     if (!activeRegion || !audioAvailable) return;
@@ -324,6 +330,11 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
     
     setActiveRegion(region);
     setIsTextMode(true);
+    
+    // Notify parent about text mode change
+    if (onTextModeChange) {
+      onTextModeChange(true);
+    }
   };
   
   const handleNextStep = () => {
@@ -353,6 +364,11 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({ worksheetId, pageInde
     if (activeRegion) {
       const newTextMode = !isTextMode;
       setIsTextMode(newTextMode);
+      
+      // Notify parent about text mode change
+      if (onTextModeChange) {
+        onTextModeChange(newTextMode);
+      }
       
       if (!newTextMode) {
         if (audioRef.current) {

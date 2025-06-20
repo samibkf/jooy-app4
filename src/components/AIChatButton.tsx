@@ -3,13 +3,15 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { MessageSquareText } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
+import { cn } from "@/lib/utils";
 
 interface AIChatButtonProps {
   worksheetId: string;
   pageNumber: number;
+  isTextModeActive: boolean;
 }
 
-const AIChatButton: React.FC<AIChatButtonProps> = ({ worksheetId, pageNumber }) => {
+const AIChatButton: React.FC<AIChatButtonProps> = ({ worksheetId, pageNumber, isTextModeActive }) => {
   const navigate = useNavigate();
 
   const handleClick = () => {
@@ -45,10 +47,15 @@ const AIChatButton: React.FC<AIChatButtonProps> = ({ worksheetId, pageNumber }) 
     navigate(`/chat/${worksheetId}/${pageNumber}`);
   };
 
+  const buttonClasses = cn(
+    "fixed bottom-4 z-50 rounded-full bg-gradient-to-r from-blue-500 to-blue-700 hover:from-blue-600 hover:to-blue-800 text-white shadow-lg",
+    isTextModeActive ? "left-4" : "left-1/2 -translate-x-1/2"
+  );
+
   return (
     <Button
       onClick={handleClick}
-      className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 rounded-full bg-gradient-to-r from-blue-500 to-blue-700 hover:from-blue-600 hover:to-blue-800 text-white shadow-lg"
+      className={buttonClasses}
       size="icon"
       aria-label="AI Chat"
     >

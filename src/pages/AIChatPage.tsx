@@ -143,14 +143,14 @@ const AIChatPage: React.FC = () => {
       // Create the prompt with context and language instruction
       const prompt = `You are an AI assistant helping a student understand their worksheet. You can see the worksheet page in the image provided. 
 
-IMPORTANT: Please respond in English (the same language as the worksheet content).
+IMPORTANT: Please respond in the same language as the worksheet content and the user's question.
 
 Previous conversation:
 ${conversationHistory}
 
 Current question: ${userMessage}
 
-Please provide a helpful, educational response based on what you can see in the worksheet image and the student's question. Be encouraging and explain concepts clearly. Always respond in English.`;
+Please provide a helpful, educational response based on what you can see in the worksheet image and the student's question. Be encouraging and explain concepts clearly. Always respond in the language of the worksheet.`;
 
       // Convert base64 image to the format expected by Gemini
       const base64Data = pageImage.split(',')[1]; // Remove data:image/png;base64, prefix
