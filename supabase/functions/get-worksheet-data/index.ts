@@ -66,10 +66,10 @@ serve(async (req) => {
       )
     }
 
-    // Get PDF URL from 'pdfs' storage bucket (no fallback to public path)
+    // Get PDF URL from 'pdfs' storage bucket with 24 hour expiry
     const { data: pdfData, error: storageError } = await supabase.storage
       .from('pdfs')
-      .createSignedUrl(`${worksheetId}.pdf`, 3600) // 1 hour expiry
+      .createSignedUrl(`${worksheetId}.pdf`, 86400) // 24 hours expiry
 
     let pdfUrl = null
     if (pdfData?.signedUrl && !storageError) {
