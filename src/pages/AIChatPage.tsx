@@ -93,9 +93,9 @@ const AIChatPage: React.FC = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // Generate page image on component mount if pdfUrl is available
+  // Load cached page image or generate new one
   useEffect(() => {
-    if (!pdfUrl || !pageNumber) {
+    if (!pdfUrl || !pageNumber || !worksheetId) {
       setIsGeneratingImage(false);
       toast({
         title: "Error",
@@ -105,12 +105,30 @@ const AIChatPage: React.FC = () => {
       return;
     }
     
+    // Create a unique key for this worksheet page image
+    const imageKey = `worksheetPageImage_${worksheetId}_${pageNumber}`;
+    
+    // Try to load cached image from sessionStorage first
+    try {
+      const cachedImage = sessionStorage.getItem(imageKey);
+      if (cachedImage) {
+        console.log('Using cached worksheet page image');
+        setPageImage(cachedImage);
+        setIsGeneratingImage(false);
+        return;
+      }
+    } catch (error) {
+      console.warn('Failed to load cached image from sessionStorage:', error);
+    }
+    
+    // If no cached image found, generate a new one
+    console.log('Generating new worksheet page image');
     setIsGeneratingImage(true);
-  }, [pdfUrl, pageNumber]);
+  }, [pdfUrl, pageNumber, worksheetId]);
 
   const onPageLoadSuccess = (page: any) => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    if (!canvas || !worksheetId || !pageNumber) return;
 
     const context = canvas.getContext('2d');
     if (!context) return;
@@ -131,6 +149,30 @@ const AIChatPage: React.FC = () => {
       const imageDataUrl = canvas.toDataURL('image/png');
       setPageImage(imageDataUrl);
       setIsGeneratingImage(false);
+      
+      // Cache the generated image in sessionStorage for future use
+      const imageKey = `worksheetPageImage_${worksheetId}_${pageNumber}`;
+      try {
+        sessionStorage.setItem(imageKey, imageDataUrl);
+        console.log('Cached worksheet page image for future use');
+      } catch (error) {
+        console.warn('Failed to cache image in sessionStorage:', error);
+        // If sessionStorage is full, try to clear old worksheet images
+        try {
+          // Clear old worksheet page images to make space
+          for (let i = 0; i < sessionStorage.length; i++) {
+            const key = sessionStorage.key(i);
+            if (key && key.startsWith('worksheetPageImage_') && key !== imageKey) {
+              sessionStorage.removeItem(key);
+            }
+          }
+          // Try to save again after cleanup
+          sessionStorage.setItem(imageKey, imageDataUrl);
+          console.log('Cached worksheet page image after cleanup');
+        } catch (cleanupError) {
+          console.warn('Failed to cache image even after cleanup:', cleanupError);
+        }
+      }
     }).catch((error: any) => {
       console.error('Error rendering PDF page:', error);
       setIsGeneratingImage(false);
@@ -348,20 +390,22 @@ Please provide a helpful, educational response based on what you can see in the 
         </div>
       </div>
 
-      {/* Hidden PDF rendering for image generation */}
-      <div className="hidden">
-        {pdfUrl && (
-          <Document file={pdfUrl}>
-            <Page
-              pageNumber={parseInt(pageNumber)}
-              onLoadSuccess={onPageLoadSuccess}
-              renderTextLayer={false}
-              renderAnnotationLayer={false}
-            />
-          </Document>
-        )}
-        <canvas ref={canvasRef} />
-      </div>
+      {/* Hidden PDF rendering for image generation - only render if no cached image */}
+      {!pageImage && (
+        <div className="hidden">
+          {pdfUrl && (
+            <Document file={pdfUrl}>
+              <Page
+                pageNumber={parseInt(pageNumber)}
+                onLoadSuccess={onPageLoadSuccess}
+                renderTextLayer={false}
+                renderAnnotationLayer={false}
+              />
+            </Document>
+          )}
+          <canvas ref={canvasRef} />
+        </div>
+      )}
 
       {/* Conditionally render SwitchModeButton */}
       <SwitchModeButton 
