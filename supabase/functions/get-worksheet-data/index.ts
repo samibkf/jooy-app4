@@ -30,17 +30,17 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     const supabase = createClient(supabaseUrl, supabaseKey)
 
-    // Fetch worksheet metadata
-    const { data: worksheet, error: worksheetError } = await supabase
-      .from('worksheets')
+    // Fetch document metadata from 'documents' table
+    const { data: document, error: documentError } = await supabase
+      .from('documents')
       .select('*')
       .eq('id', worksheetId)
       .single()
 
-    if (worksheetError) {
-      console.error('Worksheet fetch error:', worksheetError)
+    if (documentError) {
+      console.error('Document fetch error:', documentError)
       return new Response(
-        JSON.stringify({ error: 'Worksheet not found' }),
+        JSON.stringify({ error: 'Document not found' }),
         { 
           status: 404, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
@@ -48,17 +48,17 @@ serve(async (req) => {
       )
     }
 
-    // Fetch regions for this worksheet
+    // Fetch regions from 'document_regions' table using document_id
     const { data: regions, error: regionsError } = await supabase
-      .from('regions')
+      .from('document_regions')
       .select('*')
-      .eq('worksheet_id', worksheetId)
+      .eq('document_id', worksheetId)
       .order('page', { ascending: true })
 
     if (regionsError) {
-      console.error('Regions fetch error:', regionsError)
+      console.error('Document regions fetch error:', regionsError)
       return new Response(
-        JSON.stringify({ error: 'Failed to fetch regions' }),
+        JSON.stringify({ error: 'Failed to fetch document regions' }),
         { 
           status: 500, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
@@ -66,24 +66,39 @@ serve(async (req) => {
       )
     }
 
-    // Get PDF URL from storage
-    const { data: pdfData } = await supabase.storage
-      .from('private-pdfs')
+    // Get PDF URL from 'pdfs' storage bucket (no fallback to public path)
+    const { data: pdfData, error: storageError } = await supabase.storage
+      .from('pdfs')
       .createSignedUrl(`${worksheetId}.pdf`, 3600) // 1 hour expiry
 
-    const pdfUrl = pdfData?.signedUrl || `/pdfs/${worksheetId}.pdf`
+    let pdfUrl = null
+    if (pdfData?.signedUrl && !storageError) {
+      pdfUrl = pdfData.signedUrl
+    }
+
+    // If no signed URL could be generated, pdfUrl remains null
+    if (!pdfUrl) {
+      console.warn(`PDF file not found in storage for worksheet: ${worksheetId}`)
+      return new Response(
+        JSON.stringify({ error: 'PDF file not found' }),
+        { 
+          status: 404, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      )
+    }
 
     // Transform data to match expected format
     const responseData = {
       meta: {
-        documentName: worksheet.document_name,
-        documentId: worksheet.document_id,
-        drmProtectedPages: worksheet.drm_protected_pages || [],
-        drmProtected: worksheet.drm_protected || false,
+        documentName: document.name,
+        documentId: document.id,
+        drmProtectedPages: document.drm_protected_pages || [],
+        drmProtected: document.is_private || false,
         regions: regions?.map(region => ({
           id: region.id,
-          document_id: worksheet.document_id,
-          user_id: 'system', // Since this is public data
+          document_id: document.id,
+          user_id: region.user_id,
           page: region.page,
           x: region.x,
           y: region.y,
