@@ -9,6 +9,40 @@ export function getTextDirection(text: string): 'rtl' | 'ltr' {
     return 'ltr'; // Default to LTR for empty or invalid text
   }
 
+  // LTR Unicode ranges - explicitly define common Left-to-Right character sets
+  const ltrRanges = [
+    // Basic Latin (U+0000-U+007F) - English, numbers, basic punctuation
+    /[\u0000-\u007F]/,
+    // Latin-1 Supplement (U+0080-U+00FF) - Western European languages
+    /[\u0080-\u00FF]/,
+    // Latin Extended-A (U+0100-U+017F) - Central/Eastern European languages
+    /[\u0100-\u017F]/,
+    // Latin Extended-B (U+0180-U+024F) - Additional Latin characters
+    /[\u0180-\u024F]/,
+    // IPA Extensions (U+0250-U+02AF)
+    /[\u0250-\u02AF]/,
+    // Spacing Modifier Letters (U+02B0-U+02FF)
+    /[\u02B0-\u02FF]/,
+    // Latin Extended Additional (U+1E00-U+1EFF)
+    /[\u1E00-\u1EFF]/,
+    // Greek and Coptic (U+0370-U+03FF)
+    /[\u0370-\u03FF]/,
+    // Cyrillic (U+0400-U+04FF) - Russian, Bulgarian, etc.
+    /[\u0400-\u04FF]/,
+    // Cyrillic Supplement (U+0500-U+052F)
+    /[\u0500-\u052F]/,
+    // Armenian (U+0530-U+058F)
+    /[\u0530-\u058F]/,
+    // Georgian (U+10A0-U+10FF)
+    /[\u10A0-\u10FF]/,
+    // Latin Extended-C (U+2C60-U+2C7F)
+    /[\u2C60-\u2C7F]/,
+    // Latin Extended-D (U+A720-U+A7FF)
+    /[\uA720-\uA7FF]/,
+    // Halfwidth and Fullwidth Forms - Latin portion (U+FF00-U+FF5F)
+    /[\uFF00-\uFF5F]/
+  ];
+
   // RTL Unicode ranges
   const rtlRanges = [
     // Arabic (U+0600-U+06FF)
@@ -49,16 +83,16 @@ export function getTextDirection(text: string): 'rtl' | 'ltr' {
   const cleanText = text.replace(/[\s\p{P}\p{S}\p{N}]/gu, '');
   
   for (const char of cleanText) {
-    // Check if character is RTL
-    if (rtlRanges.some(range => range.test(char))) {
-      rtlCount++;
-    } else if (/[\p{L}]/u.test(char)) {
-      // Count as LTR if it's a letter but not RTL
+    // IMPORTANT: Check LTR ranges FIRST
+    if (ltrRanges.some(range => range.test(char))) {
       ltrCount++;
+    } else if (rtlRanges.some(range => range.test(char))) {
+      rtlCount++;
     }
+    // If character doesn't match either LTR or RTL ranges, we ignore it
   }
 
-  // If we have RTL characters and they make up more than 30% of the text, consider it RTL
+  // Calculate totals and percentages
   const totalLetters = rtlCount + ltrCount;
   if (totalLetters === 0) {
     console.log(`getTextDirection: No letters found in "${text}", cleanText: "${cleanText}", defaulting to LTR.`);
@@ -66,6 +100,9 @@ export function getTextDirection(text: string): 'rtl' | 'ltr' {
   }
 
   const rtlPercentage = rtlCount / totalLetters;
+  const ltrPercentage = ltrCount / totalLetters;
+  
+  // If we have RTL characters and they make up more than 30% of the text, consider it RTL
   const detectedDirection = rtlPercentage > 0.3 ? 'rtl' : 'ltr';
 
   console.log(`getTextDirection:
@@ -75,6 +112,7 @@ export function getTextDirection(text: string): 'rtl' | 'ltr' {
     LTR Count: ${ltrCount}
     Total Letters: ${totalLetters}
     RTL Percentage: ${rtlPercentage.toFixed(2)}
+    LTR Percentage: ${ltrPercentage.toFixed(2)}
     Detected Direction: ${detectedDirection}`);
 
   return detectedDirection;
