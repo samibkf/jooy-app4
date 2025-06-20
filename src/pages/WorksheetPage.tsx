@@ -1,6 +1,7 @@
 import React from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import WorksheetViewer from "@/components/WorksheetViewer";
+import AIChatButton from "@/components/AIChatButton";
 import { Button } from "@/components/ui/button";
 
 const WorksheetPage: React.FC = () => {
@@ -42,6 +43,7 @@ const WorksheetPage: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <WorksheetViewer worksheetId={id} pageIndex={pageIndex} />
+      <AIChatButton worksheetId={id} pageNumber={pageIndex} />
     </div>
   );
 };
