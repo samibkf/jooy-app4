@@ -36,11 +36,6 @@ const WorksheetPage: React.FC = () => {
   // Fetch worksheet data once at the page level
   const { data: worksheetData, isLoading, error } = useWorksheetData(id || '');
   
-  // Debug log for isTextModeActive changes
-  useEffect(() => {
-    console.log('WorksheetPage: isTextModeActive changed to:', isTextModeActive);
-  }, [isTextModeActive]);
-  
   // Load session state when worksheet or page changes
   useEffect(() => {
     if (!id || !n) return;
