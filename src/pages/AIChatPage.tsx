@@ -57,6 +57,15 @@ const AIChatPage: React.FC = () => {
   useEffect(() => {
     if (!worksheetId || !pageNumber) return;
     
+    // DEBUG: Check session state when AIChatPage mounts
+    const sessionKey = `worksheet_page_state_${worksheetId}_${pageNumber}`;
+    const currentSessionState = sessionStorage.getItem(sessionKey);
+    console.log('🔍 [DEBUG] AIChatPage - Session state ON MOUNT:', {
+      sessionKey,
+      currentSessionState,
+      parsedState: currentSessionState ? JSON.parse(currentSessionState) : null
+    });
+    
     const chatHistoryKey = `aiChatHistory_${worksheetId}_${pageNumber}`;
     
     try {
@@ -256,6 +265,15 @@ Analyze the student's question carefully. If they're asking for a specific works
       // Add AI response to chat
       setMessages(prev => [...prev, { role: 'assistant', content: aiResponse }]);
 
+      // DEBUG: Check session state after AI response
+      const sessionKey = `worksheet_page_state_${worksheetId}_${pageNumber}`;
+      const currentSessionState = sessionStorage.getItem(sessionKey);
+      console.log('🔍 [DEBUG] AIChatPage - Session state AFTER AI response:', {
+        sessionKey,
+        currentSessionState,
+        parsedState: currentSessionState ? JSON.parse(currentSessionState) : null
+      });
+
     } catch (error) {
       console.error('Error calling Gemini API:', error);
       toast({
@@ -279,6 +297,15 @@ Analyze the student's question carefully. If they're asking for a specific works
   };
 
   const goBack = () => {
+    // DEBUG: Check session state before navigating back to worksheet
+    const sessionKey = `worksheet_page_state_${worksheetId}_${pageNumber}`;
+    const currentSessionState = sessionStorage.getItem(sessionKey);
+    console.log('🔍 [DEBUG] AIChatPage - Session state BEFORE navigating back to worksheet:', {
+      sessionKey,
+      currentSessionState,
+      parsedState: currentSessionState ? JSON.parse(currentSessionState) : null
+    });
+    
     // Navigate back to worksheet without any state - this will show the main PDF view
     navigate(`/worksheet/${worksheetId}/${pageNumber}`);
   };
