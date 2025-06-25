@@ -50,7 +50,7 @@ const QrScannerPage: React.FC = () => {
     <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold text-blue-600">
+          <CardTitle className="text-2xl font-bold bg-gradient-orange-magenta bg-clip-text text-transparent">
             Scan Worksheet QR Code
           </CardTitle>
         </CardHeader>

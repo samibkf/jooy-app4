@@ -434,7 +434,7 @@ Analyze the student's question carefully. If they're asking for a specific works
               onKeyPress={handleKeyPress}
               placeholder="Ask about this worksheet page..."
               disabled={isLoading || isGeneratingImage}
-              className="flex-1 min-h-[44px] text-base border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+              className="flex-1 min-h-[44px] text-base border-gray-300 focus-gradient-left-border"
               dir={getTextDirection(inputMessage)}
             />
             <Button
