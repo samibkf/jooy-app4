@@ -29,8 +29,8 @@
     --destructive-foreground: 210 40% 98%;
 
     --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    --input: 210 20% 90%;
+    --ring: 25 95% 53%;
 
     --radius: 0.5rem;
 
@@ -77,8 +77,8 @@
     --destructive-foreground: 210 40% 98%;
 
     --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
+    --input: 210 10% 20%;
+    --ring: 300 95% 53%;
     --sidebar-background: 240 5.9% 10%;
     --sidebar-foreground: 240 4.8% 95.9%;
     --sidebar-primary: 224.3 76.3% 48%;
@@ -108,24 +108,11 @@
     background: linear-gradient(135deg, #CC5200, #BB00CC);
   }
   
-  .focus-gradient-left-border {
-    position: relative;
-  }
-  
-  .focus-gradient-left-border:focus {
-    outline: none;
-    border-color: transparent;
-  }
-  
-  .focus-gradient-left-border:focus::before {
-    content: '';
-    position: absolute;
-    left: 0;
-    top: 0;
-    bottom: 0;
-    width: 3px;
+  .text-gradient-clip {
     background: linear-gradient(135deg, #FF6600 0%, #EE00FF 100%);
-    border-radius: 3px 0 0 3px;
-    z-index: 1;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    color: transparent;
   }
 }

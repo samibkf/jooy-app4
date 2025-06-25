@@ -537,7 +537,7 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({
       {isTextMode && (
         <Button
           onClick={handleBackButtonClick}
-          className="fixed top-4 left-4 z-70 rounded-full bg-gradient-to-r from-blue-500 to-blue-700 hover:from-blue-600 hover:to-blue-800 text-white shadow-lg"
+          className="fixed top-4 left-4 z-70 rounded-full bg-gradient-orange-magenta hover:bg-gradient-orange-magenta text-white shadow-lg"
           size="icon"
         >
           <ChevronLeft className="h-5 w-5" />
