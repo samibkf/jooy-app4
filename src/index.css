@@ -99,3 +99,12 @@
     @apply bg-background text-foreground;
   }
 }
+
+@layer utilities {
+  .bg-gradient-orange-magenta {
+    background: linear-gradient(135deg, #FF6600 0%, #EE00FF 100%);
+  }
+  .hover\:bg-gradient-orange-magenta:hover {
+    background: linear-gradient(135deg, #CC5200, #BB00CC);
+  }
+}

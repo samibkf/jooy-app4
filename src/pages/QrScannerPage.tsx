@@ -58,7 +58,7 @@ const QrScannerPage: React.FC = () => {
           {error ? (
             <div className="text-center">
               <p className="text-red-500 mb-4">{error}</p>
-              <Button onClick={resetScanner} className="bg-blue-500 hover:bg-blue-600">
+              <Button onClick={resetScanner} className="bg-gradient-orange-magenta hover:bg-gradient-orange-magenta">
                 Try Again
               </Button>
             </div>

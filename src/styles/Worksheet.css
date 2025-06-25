@@ -314,13 +314,13 @@
   align-items: center;
   justify-content: center;
   border-radius: 50% !important;
-  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+  background: linear-gradient(135deg, #FF6600, #EE00FF);
   color: white;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 .next-button:hover {
-  background: linear-gradient(135deg, #2563eb, #1e40af);
+  background: linear-gradient(135deg, #CC5200, #BB00CC);
   transform: translateX(-50%) translateY(-2px);
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
 }

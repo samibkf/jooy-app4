@@ -241,7 +241,7 @@ const WorksheetPage: React.FC = () => {
         <h1 className="text-2xl font-bold text-red-500 mb-4">
           Missing worksheet information
         </h1>
-        <Button onClick={goBack} className="bg-gradient-to-r from-blue-500 to-blue-700 hover:from-blue-600 hover:to-blue-800 text-white">
+        <Button onClick={goBack} className="bg-gradient-orange-magenta hover:bg-gradient-orange-magenta text-white">
           Return to Scanner
         </Button>
       </div>
@@ -256,7 +256,7 @@ const WorksheetPage: React.FC = () => {
         <h1 className="text-2xl font-bold text-red-500 mb-4">
           Invalid page number
         </h1>
-        <Button onClick={goBack} className="bg-gradient-to-r from-blue-500 to-blue-700 hover:from-blue-600 hover:to-blue-800 text-white">
+        <Button onClick={goBack} className="bg-gradient-orange-magenta hover:bg-gradient-orange-magenta text-white">
           Return to Scanner
         </Button>
       </div>
@@ -282,7 +282,7 @@ const WorksheetPage: React.FC = () => {
           <h1 className="text-2xl font-bold text-red-500 mb-4">
             {error?.message || "Worksheet not found"}
           </h1>
-          <Button onClick={goBack} className="bg-gradient-to-r from-blue-500 to-blue-700 hover:from-blue-600 hover:to-blue-800 text-white">
+          <Button onClick={goBack} className="bg-gradient-orange-magenta hover:bg-gradient-orange-magenta text-white">
             Return to Scanner
           </Button>
         </div>

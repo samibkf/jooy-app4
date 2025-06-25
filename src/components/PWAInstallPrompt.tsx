@@ -142,7 +142,7 @@ const PWAInstallPrompt: React.FC = () => {
         <div className="flex items-start justify-between">
           <div className="flex items-center space-x-3 flex-1">
             <div className="flex-shrink-0">
-              <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-blue-700 rounded-lg flex items-center justify-center">
+              <div className="w-10 h-10 bg-gradient-orange-magenta rounded-lg flex items-center justify-center">
                 <Download className="w-5 h-5 text-white" />
               </div>
             </div>
@@ -168,7 +168,7 @@ const PWAInstallPrompt: React.FC = () => {
         <div className="mt-3 flex space-x-2">
           <Button
             onClick={handleInstallClick}
-            className="flex-1 bg-gradient-to-r from-blue-500 to-blue-700 hover:from-blue-600 hover:to-blue-800 text-white text-sm h-8"
+            className="flex-1 bg-gradient-orange-magenta hover:bg-gradient-orange-magenta text-white text-sm h-8"
           >
             Install
           </Button>

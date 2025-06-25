@@ -306,7 +306,7 @@ Analyze the student's question carefully. If they're asking for a specific works
         <h1 className="text-2xl font-bold text-red-500 mb-4">
           Missing worksheet information
         </h1>
-        <Button onClick={() => navigate("/")} className="bg-gradient-to-r from-blue-500 to-blue-700 hover:from-blue-600 hover:to-blue-800 text-white">
+        <Button onClick={() => navigate("/")} className="bg-gradient-orange-magenta hover:bg-gradient-orange-magenta text-white">
           Return to Scanner
         </Button>
       </div>
@@ -319,7 +319,7 @@ Analyze the student's question carefully. If they're asking for a specific works
         <h1 className="text-2xl font-bold text-red-500 mb-4">
           Worksheet data not available
         </h1>
-        <Button onClick={goBack} className="bg-gradient-to-r from-blue-500 to-blue-700 hover:from-blue-600 hover:to-blue-800 text-white">
+        <Button onClick={goBack} className="bg-gradient-orange-magenta hover:bg-gradient-orange-magenta text-white">
           Return to Worksheet
         </Button>
       </div>
@@ -331,7 +331,7 @@ Analyze the student's question carefully. If they're asking for a specific works
       {/* Fixed Back Button */}
       <Button
         onClick={goBack}
-        className="fixed top-4 left-4 z-70 rounded-full bg-gradient-to-r from-blue-500 to-blue-700 hover:from-blue-600 hover:to-blue-800 text-white shadow-lg"
+        className="fixed top-4 left-4 z-70 rounded-full bg-gradient-orange-magenta hover:bg-gradient-orange-magenta text-white shadow-lg"
         size="icon"
       >
         <ChevronLeft className="h-5 w-5" />
@@ -357,9 +357,9 @@ Analyze the student's question carefully. If they're asking for a specific works
                   className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
                 >
                   {message.role === 'user' ? (
-                    // User message - gradient blue bubble on the right
+                    // User message - gradient orange-magenta bubble on the right
                     <div 
-                      className="max-w-[80%] bg-gradient-to-r from-blue-500 to-blue-700 text-white rounded-2xl px-4 py-3 shadow-sm"
+                      className="max-w-[80%] bg-gradient-orange-magenta text-white rounded-2xl px-4 py-3 shadow-sm"
                       dir={getTextDirection(message.content)}
                     >
                       <div className="whitespace-pre-wrap break-words">
@@ -440,7 +440,7 @@ Analyze the student's question carefully. If they're asking for a specific works
             <Button
               onClick={handleSendMessage}
               disabled={isLoading || !inputMessage.trim() || isGeneratingImage}
-              className="bg-gradient-to-r from-blue-500 to-blue-700 hover:from-blue-600 hover:to-blue-800 min-w-[44px] h-[44px] px-3"
+              className="bg-gradient-orange-magenta hover:bg-gradient-orange-magenta min-w-[44px] h-[44px] px-3"
             >
               <Send className="h-4 w-4" />
             </Button>

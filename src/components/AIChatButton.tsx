@@ -78,7 +78,7 @@ const AIChatButton: React.FC<AIChatButtonProps> = ({
   };
 
   const buttonClasses = cn(
-    "fixed bottom-4 z-50 rounded-full bg-gradient-to-r from-blue-500 to-blue-700 hover:from-blue-600 hover:to-blue-800 text-white shadow-lg",
+    "fixed bottom-4 z-50 rounded-full bg-gradient-orange-magenta hover:bg-gradient-orange-magenta text-white shadow-lg",
     isTextModeActive ? "left-4 h-10 w-10" : "left-1/2 -translate-x-1/2 h-14 w-14 p-0"
   );
 
