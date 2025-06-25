@@ -107,4 +107,25 @@
   .hover\:bg-gradient-orange-magenta:hover {
     background: linear-gradient(135deg, #CC5200, #BB00CC);
   }
+  
+  .focus-gradient-left-border {
+    position: relative;
+  }
+  
+  .focus-gradient-left-border:focus {
+    outline: none;
+    border-color: transparent;
+  }
+  
+  .focus-gradient-left-border:focus::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background: linear-gradient(135deg, #FF6600 0%, #EE00FF 100%);
+    border-radius: 3px 0 0 3px;
+    z-index: 1;
+  }
 }
