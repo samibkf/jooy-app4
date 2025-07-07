@@ -1,7 +1,7 @@
 {
-  "name": "PDF Scan Navigator",
-  "short_name": "PDF Navigator",
-  "description": "Interactive PDF worksheet navigator with QR code scanning",
+  "name": "Jooy",
+  "short_name": "Jooy",
+  "description": "Jooy",
   "start_url": "/",
   "display": "fullscreen",
   "background_color": "#ffffff",
@@ -56,14 +56,14 @@
       "sizes": "1280x720",
       "type": "image/png",
       "form_factor": "wide",
-      "label": "PDF Navigator in action"
+      "label": "Jooy"
     },
     {
       "src": "/screenshot-narrow.png",
       "sizes": "750x1334",
       "type": "image/png",
       "form_factor": "narrow",
-      "label": "Mobile view of PDF Navigator"
+      "label": "Jooy"
     }
   ]
 }
