@@ -148,7 +148,7 @@ const PWAInstallPrompt: React.FC = () => {
             </div>
             <div className="flex-1 min-w-0">
               <h3 className="text-sm font-medium text-gray-900">
-                Install PDF Navigator
+                Install Jooy
               </h3>
               <p className="text-xs text-gray-500 mt-1">
                 Add to your home screen for quick access
