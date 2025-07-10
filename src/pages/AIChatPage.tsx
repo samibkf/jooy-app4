@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import i18n from "@/i18n";
 import { Document, Page, pdfjs } from "react-pdf";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import ReactMarkdown from "react-markdown";
@@ -24,6 +25,7 @@ interface ChatMessage {
 
 const AIChatPage: React.FC = () => {
   const { t } = useTranslation();
+  const [isI18nReady, setIsI18nReady] = useState(false);
   const { worksheetId, pageNumber } = useParams<{ worksheetId: string; pageNumber: string }>();
   const navigate = useNavigate();
   const location = useLocation();
@@ -52,9 +54,26 @@ const AIChatPage: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  // Wait for i18next to be ready before rendering translated content
+  useEffect(() => {
+    if (i18n.isInitialized) {
+      setIsI18nReady(true);
+    } else {
+      const handleInitialized = () => {
+        setIsI18nReady(true);
+      };
+      
+      i18n.on('initialized', handleInitialized);
+      
+      return () => {
+        i18n.off('initialized', handleInitialized);
+      };
+    }
+  }, []);
+
   // Load chat history from localStorage on component mount or when worksheet/page changes
   useEffect(() => {
-    if (!worksheetId || !pageNumber) return;
+    if (!worksheetId || !pageNumber || !isI18nReady) return;
     
     // DEBUG: Check session state when AIChatPage mounts
     const sessionKey = `worksheet_page_state_${worksheetId}_${pageNumber}`;
@@ -85,7 +104,7 @@ const AIChatPage: React.FC = () => {
       role: 'assistant',
       content: t('aiChat.welcome')
     }]);
-  }, [worksheetId, pageNumber, t]);
+  }, [worksheetId, pageNumber, isI18nReady, t]);
 
   // Save chat history to localStorage whenever messages change
   useEffect(() => {
@@ -301,6 +320,17 @@ Analyze the student's question carefully. If they're asking for a specific works
     // Navigate back to worksheet without any state - this will show the main PDF view
     navigate(`/worksheet/${worksheetId}/${pageNumber}`);
   };
+
+  // Show loading while i18next is initializing
+  if (!isI18nReady) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center">
+        <div className="text-center">
+          <p className="text-lg">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!worksheetId || !pageNumber) {
     return (

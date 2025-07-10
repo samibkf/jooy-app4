@@ -10,7 +10,7 @@ i18n
   .init({
     fallbackLng: 'ar', // Arabic as default
     lng: 'ar', // Set Arabic as the initial language
-    debug: false,
+    debug: true,
 
     interpolation: {
       escapeValue: false, // React already does escaping
