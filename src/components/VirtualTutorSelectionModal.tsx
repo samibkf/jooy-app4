@@ -45,7 +45,7 @@ const VirtualTutorSelectionModal: React.FC<VirtualTutorSelectionModalProps> = ({
         <DialogHeader>
           <DialogTitle className="text-center">Select Virtual Tutor</DialogTitle>
           <DialogDescription className="text-center">
-            Choose your preferred virtual tutor for this session
+            Choose your preferred virtual tutor
           </DialogDescription>
         </DialogHeader>
         
