@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { Document, Page, pdfjs } from "react-pdf";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import ReactMarkdown from "react-markdown";
@@ -22,6 +23,7 @@ interface ChatMessage {
 }
 
 const AIChatPage: React.FC = () => {
+  const { t } = useTranslation();
   const { worksheetId, pageNumber } = useParams<{ worksheetId: string; pageNumber: string }>();
   const navigate = useNavigate();
   const location = useLocation();
@@ -81,7 +83,7 @@ const AIChatPage: React.FC = () => {
     // Set default AI welcome message if no stored history
     setMessages([{
       role: 'assistant',
-      content: `How can I help you with this worksheet page?`
+      content: t('aiChat.welcome')
     }]);
   }, [worksheetId, pageNumber]);
 
@@ -108,8 +110,8 @@ const AIChatPage: React.FC = () => {
     if (!pdfUrl || !pageNumber || !worksheetId) {
       setIsGeneratingImage(false);
       toast({
-        title: "Error",
-        description: "PDF data not available for AI chat.",
+        title: t('aiChat.pdfError'),
+        description: t('aiChat.pdfErrorDesc'),
         variant: "destructive"
       });
       return;
@@ -181,8 +183,8 @@ const AIChatPage: React.FC = () => {
     }).catch((error: any) => {
       setIsGeneratingImage(false);
       toast({
-        title: "Error",
-        description: "Failed to generate page image for AI analysis.",
+        title: t('aiChat.pdfError'),
+        description: t('aiChat.imageGenerationError'),
         variant: "destructive"
       });
     });
@@ -194,8 +196,8 @@ const AIChatPage: React.FC = () => {
     const apiKey = localStorage.getItem('gemini-api-key');
     if (!apiKey) {
       toast({
-        title: "API Key Missing",
-        description: "Please set your Gemini API key first.",
+        title: t('aiChat.apiKeyMissing'),
+        description: t('aiChat.apiKeyMissingDesc'),
         variant: "destructive"
       });
       return;
@@ -267,8 +269,8 @@ Analyze the student's question carefully. If they're asking for a specific works
 
     } catch (error) {
       toast({
-        title: "AI Error",
-        description: "Failed to get response from AI. Please check your API key and try again.",
+        title: t('aiChat.aiError'),
+        description: t('aiChat.aiErrorDesc'),
         variant: "destructive"
       });
       
@@ -303,11 +305,11 @@ Analyze the student's question carefully. If they're asking for a specific works
   if (!worksheetId || !pageNumber) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center">
-        <h1 className="text-2xl font-bold text-red-500 mb-4">
-          Missing worksheet information
+        <h1 className="text-2xl font-bold text-red-500 mb-4" dir={t('common.language') === 'العربية' ? 'rtl' : 'ltr'}>
+          {t('aiChat.missingInfo')}
         </h1>
-        <Button onClick={() => navigate("/")} className="bg-gradient-orange-magenta hover:bg-gradient-orange-magenta text-white">
-          Return to Scanner
+        <Button onClick={() => navigate("/")} className="bg-gradient-orange-magenta hover:bg-gradient-orange-magenta text-white" dir={t('common.language') === 'العربية' ? 'rtl' : 'ltr'}>
+          {t('worksheet.returnToScanner')}
         </Button>
       </div>
     );
@@ -316,11 +318,11 @@ Analyze the student's question carefully. If they're asking for a specific works
   if (!pdfUrl) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center">
-        <h1 className="text-2xl font-bold text-red-500 mb-4">
-          Worksheet data not available
+        <h1 className="text-2xl font-bold text-red-500 mb-4" dir={t('common.language') === 'العربية' ? 'rtl' : 'ltr'}>
+          {t('aiChat.dataNotAvailable')}
         </h1>
-        <Button onClick={goBack} className="bg-gradient-orange-magenta hover:bg-gradient-orange-magenta text-white">
-          Return to Worksheet
+        <Button onClick={goBack} className="bg-gradient-orange-magenta hover:bg-gradient-orange-magenta text-white" dir={t('common.language') === 'العربية' ? 'rtl' : 'ltr'}>
+          {t('aiChat.returnToWorksheet')}
         </Button>
       </div>
     );
@@ -340,7 +342,7 @@ Analyze the student's question carefully. If they're asking for a specific works
       {/* Fixed Header */}
       <div className="fixed top-0 left-0 right-0 z-60 bg-white border-b border-gray-200 p-4 flex items-center gap-4">
         <div className="flex-1 text-center">
-          <h1 className="text-xl font-semibold">AI Chat</h1>
+          <h1 className="text-xl font-semibold" dir={t('common.language') === 'العربية' ? 'rtl' : 'ltr'}>{t('aiChat.title')}</h1>
         </div>
       </div>
 
@@ -412,7 +414,7 @@ Analyze the student's question carefully. If they're asking for a specific works
                 <div className="flex justify-start">
                   <div className="flex items-center gap-2 text-gray-600 bg-gray-100 rounded-2xl px-4 py-3">
                     <Loader2 className="h-4 w-4 animate-spin" />
-                    <span>Thinking...</span>
+                    <span>{t('aiChat.thinking')}</span>
                   </div>
                 </div>
               )}
@@ -431,7 +433,7 @@ Analyze the student's question carefully. If they're asking for a specific works
               value={inputMessage}
               onChange={(e) => setInputMessage(e.target.value)}
               onKeyPress={handleKeyPress}
-              placeholder="Ask about this worksheet page..."
+              placeholder={t('aiChat.placeholder')}
               disabled={isLoading || isGeneratingImage}
               className="flex-1 min-h-[44px] text-base border-gray-300 focus:border-orange-500 focus:ring-orange-500"
               dir={getTextDirection(inputMessage)}

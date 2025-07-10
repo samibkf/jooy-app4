@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import WorksheetViewer from "@/components/WorksheetViewer";
 import AIChatButton from "@/components/AIChatButton";
 import { Button } from "@/components/ui/button";
@@ -16,6 +17,7 @@ interface SessionPageData {
 }
 
 const WorksheetPage: React.FC = () => {
+  const { t } = useTranslation();
   const { id, n } = useParams<{ id: string; n: string }>();
   const navigate = useNavigate();
   const location = useLocation();
@@ -238,11 +240,11 @@ const WorksheetPage: React.FC = () => {
   if (!id || !n) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center">
-        <h1 className="text-2xl font-bold text-red-500 mb-4">
-          Missing worksheet information
+        <h1 className="text-2xl font-bold text-red-500 mb-4" dir={t('common.language') === 'العربية' ? 'rtl' : 'ltr'}>
+          {t('aiChat.missingInfo')}
         </h1>
-        <Button onClick={goBack} className="bg-gradient-orange-magenta hover:bg-gradient-orange-magenta text-white">
-          Return to Scanner
+        <Button onClick={goBack} className="bg-gradient-orange-magenta hover:bg-gradient-orange-magenta text-white" dir={t('common.language') === 'العربية' ? 'rtl' : 'ltr'}>
+          {t('worksheet.returnToScanner')}
         </Button>
       </div>
     );
@@ -253,11 +255,11 @@ const WorksheetPage: React.FC = () => {
   if (isNaN(pageIndex)) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center">
-        <h1 className="text-2xl font-bold text-red-500 mb-4">
-          Invalid page number
+        <h1 className="text-2xl font-bold text-red-500 mb-4" dir={t('common.language') === 'العربية' ? 'rtl' : 'ltr'}>
+          {t('worksheet.invalidPage')}
         </h1>
-        <Button onClick={goBack} className="bg-gradient-orange-magenta hover:bg-gradient-orange-magenta text-white">
-          Return to Scanner
+        <Button onClick={goBack} className="bg-gradient-orange-magenta hover:bg-gradient-orange-magenta text-white" dir={t('common.language') === 'العربية' ? 'rtl' : 'ltr'}>
+          {t('worksheet.returnToScanner')}
         </Button>
       </div>
     );
@@ -267,8 +269,8 @@ const WorksheetPage: React.FC = () => {
   if (isLoading) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center">
-        <div className="text-center">
-          <p className="text-lg">Loading worksheet...</p>
+        <div className="text-center" dir={t('common.language') === 'العربية' ? 'rtl' : 'ltr'}>
+          <p className="text-lg">{t('worksheet.loading')}</p>
         </div>
       </div>
     );
@@ -278,12 +280,12 @@ const WorksheetPage: React.FC = () => {
   if (error || !worksheetData) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center">
-        <div className="text-center">
+        <div className="text-center" dir={t('common.language') === 'العربية' ? 'rtl' : 'ltr'}>
           <h1 className="text-2xl font-bold text-red-500 mb-4">
-            {error?.message || "Worksheet not found"}
+            {error?.message || t('worksheet.notFound')}
           </h1>
           <Button onClick={goBack} className="bg-gradient-orange-magenta hover:bg-gradient-orange-magenta text-white">
-            Return to Scanner
+            {t('worksheet.returnToScanner')}
           </Button>
         </div>
       </div>

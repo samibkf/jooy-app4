@@ -1,4 +1,5 @@
 import React from "react";
+import { useTranslation } from "react-i18next";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 
@@ -35,6 +36,8 @@ const VirtualTutorSelectionModal: React.FC<VirtualTutorSelectionModalProps> = ({
   onClose,
   onSelectTutor
 }) => {
+  const { t } = useTranslation();
+
   const handleTutorClick = (videoSrc: string) => {
     onSelectTutor(videoSrc);
   };
@@ -43,9 +46,9 @@ const VirtualTutorSelectionModal: React.FC<VirtualTutorSelectionModalProps> = ({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-md mx-auto">
         <DialogHeader>
-          <DialogTitle className="text-center">Select Virtual Tutor</DialogTitle>
+          <DialogTitle className="text-center">{t('virtualTutor.selectTitle')}</DialogTitle>
           <DialogDescription className="text-center">
-            Choose your preferred virtual tutor
+            {t('virtualTutor.selectDescription')}
           </DialogDescription>
         </DialogHeader>
         
@@ -75,7 +78,7 @@ const VirtualTutorSelectionModal: React.FC<VirtualTutorSelectionModalProps> = ({
             variant="outline"
             className="px-6"
           >
-            Cancel
+            {t('virtualTutor.cancel')}
           </Button>
         </div>
       </DialogContent>

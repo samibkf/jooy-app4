@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { Document, Page, pdfjs } from "react-pdf";
 import "../styles/Worksheet.css";
 import { toast } from "@/components/ui/use-toast";
@@ -37,6 +38,7 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({
   onRegionStateChange,
   allRegionsState = {}
 }) => {
+  const { t } = useTranslation();
   const [numPages, setNumPages] = useState<number | null>(null);
   
   const [pdfDimensions, setPdfDimensions] = useState({ width: 0, height: 0 });
@@ -719,8 +721,8 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({
       
       {numPages && numPages > 0 && (
         <div className="worksheet-info">
-          <p className="text-sm text-gray-500 mt-2">
-            Page {pageIndex} of {numPages}
+          <p className="text-sm text-gray-500 mt-2" dir={t('common.language') === 'العربية' ? 'rtl' : 'ltr'}>
+            {t('worksheet.pageInfo', { current: pageIndex, total: numPages })}
           </p>
         </div>
       )}

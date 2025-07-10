@@ -1,14 +1,22 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import QrScanner from "react-qr-scanner";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Languages } from "lucide-react";
 
 const QrScannerPage: React.FC = () => {
   const navigate = useNavigate();
+  const { t, i18n } = useTranslation();
   const [scanning, setScanning] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const changeLanguage = (lng: string) => {
+    i18n.changeLanguage(lng);
+  };
 
   const handleScan = (data: { text: string } | null) => {
     if (data && data.text) {
@@ -21,10 +29,10 @@ const QrScannerPage: React.FC = () => {
         setScanning(false);
         navigate(`/worksheet/${id}/${n}`);
       } else {
-        setError("Invalid QR code format. Expected format: ID followed by page number.");
+        setError(t('qrScanner.invalidFormat'));
         toast({
-          title: "Invalid QR Format",
-          description: "Please scan a valid worksheet QR code.",
+          title: t('qrScanner.invalidFormat'),
+          description: t('qrScanner.invalidFormatDesc'),
           variant: "destructive"
         });
       }
@@ -33,10 +41,10 @@ const QrScannerPage: React.FC = () => {
 
   const handleError = (err: Error) => {
     console.error(err);
-    setError(`Error accessing camera: ${err.message}`);
+    setError(t('qrScanner.errorAccessing', { message: err.message }));
     toast({
-      title: "Camera Error",
-      description: "Unable to access your camera. Please check your permissions.",
+      title: t('qrScanner.cameraError'),
+      description: t('qrScanner.cameraErrorDesc'),
       variant: "destructive"
     });
   };
@@ -48,18 +56,37 @@ const QrScannerPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
+      {/* Language Selection Button */}
+      <div className="fixed top-4 left-4 z-50">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="icon" className="bg-white shadow-md">
+              <Languages className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start">
+            <DropdownMenuItem onClick={() => changeLanguage('ar')}>
+              {t('common.arabic')}
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => changeLanguage('en')}>
+              {t('common.english')}
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl font-bold text-gradient-clip">
-            Scan QR Code
+            {t('qrScanner.title')}
           </CardTitle>
         </CardHeader>
         <CardContent>
           {error ? (
             <div className="text-center">
               <p className="text-red-500 mb-4">{error}</p>
-              <Button onClick={resetScanner} className="bg-gradient-orange-magenta hover:bg-gradient-orange-magenta">
-                Try Again
+              <Button onClick={resetScanner} className="bg-gradient-orange-magenta hover:bg-gradient-orange-magenta text-white">
+                {t('qrScanner.tryAgain')}
               </Button>
             </div>
           ) : (
