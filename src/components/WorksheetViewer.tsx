@@ -577,11 +577,11 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({
       {isTextMode && (
         <Button
           onClick={() => setShowTutorSelectionModal(true)}
-          className="fixed top-4 left-1/2 -translate-x-1/2 z-70 rounded-full bg-gradient-orange-magenta hover:bg-gradient-orange-magenta text-white shadow-lg"
-          size="icon"
+          className="fixed top-2 left-1/2 -translate-x-1/2 z-70 rounded-full bg-gradient-orange-magenta hover:bg-gradient-orange-magenta text-white shadow-lg h-8 w-8"
+          size="sm"
           aria-label="Select Virtual Tutor"
         >
-          <UserRound className="h-5 w-5" />
+          <UserRound className="h-4 w-4" />
         </Button>
       )}
       
