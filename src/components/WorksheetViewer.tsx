@@ -57,7 +57,7 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({
   const [audioCheckPerformed, setAudioCheckPerformed] = useState<boolean>(false);
   
   // Virtual tutor selection state
-  const [selectedTutorVideoUrl, setSelectedTutorVideoUrl] = useState<string>("/video/default.mp4");
+  const [selectedTutorVideoUrl, setSelectedTutorVideoUrl] = useState<string>("/video/1.mp4");
   const [showTutorSelectionModal, setShowTutorSelectionModal] = useState<boolean>(false);
   
   // State to track if initial state has been restored for the current worksheet/page
