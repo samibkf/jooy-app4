@@ -57,7 +57,10 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({
   const [audioCheckPerformed, setAudioCheckPerformed] = useState<boolean>(false);
   
   // Virtual tutor selection state
-  const [selectedTutorVideoUrl, setSelectedTutorVideoUrl] = useState<string>("/video/1.mp4");
+  const [selectedTutorVideoUrl, setSelectedTutorVideoUrl] = useState<string>(() => {
+    // Load saved tutor preference from localStorage, default to Virtual Tutor 1
+    return localStorage.getItem('selectedVirtualTutor') || '/video/1.mp4';
+  });
   const [showTutorSelectionModal, setShowTutorSelectionModal] = useState<boolean>(false);
   
   // State to track if initial state has been restored for the current worksheet/page
@@ -450,8 +453,6 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({
       
       if (videoRef.current && audioAvailable) {
         videoRef.current.currentTime = 0;
-        videoRef.current.load(); // Reload video with current source
-        videoRef.current.load(); // Reload video with current source
         videoRef.current.play().catch(err => {
           // Suppress expected errors when video is removed from DOM
           if (err.name !== 'AbortError' && !err.message.includes('media was removed from the document')) {
@@ -531,6 +532,8 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({
 
   const handleTutorSelected = (videoUrl: string) => {
     setSelectedTutorVideoUrl(videoUrl);
+    // Persist the selected tutor as the new default
+    localStorage.setItem('selectedVirtualTutor', videoUrl);
     setShowTutorSelectionModal(false);
     
     // Reload the video with the new source
