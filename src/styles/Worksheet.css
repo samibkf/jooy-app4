@@ -381,3 +381,28 @@
     height: 24px !important;
   }
 }
+
+/* Virtual Tutor Selection Button Styling */
+.worksheet-container.text-mode .fixed.top-4.left-1\/2 {
+  z-index: 70;
+}
+
+/* Ensure virtual tutor button is properly positioned and visible */
+.virtual-tutor-button {
+  position: fixed;
+  top: 1rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 70;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #FF6600, #EE00FF);
+  color: white;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transition: all 0.3s ease;
+}
+
+.virtual-tutor-button:hover {
+  background: linear-gradient(135deg, #CC5200, #BB00CC);
+  transform: translateX(-50%) translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+}
