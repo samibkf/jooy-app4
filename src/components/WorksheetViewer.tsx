@@ -680,12 +680,6 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({
           </p>
         </div>
       )}
-      
-      {isCurrentPageDrmProtected && !isTextMode && (
-        <div className="drm-notice">
-          <p>This page has content protection enabled</p>
-        </div>
-      )}
     </div>
   );
 };
