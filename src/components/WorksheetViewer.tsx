@@ -102,6 +102,16 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({
     if (worksheetMeta) {
       const isDrmProtected = worksheetMeta.drmProtected || 
         (Array.isArray(worksheetMeta.drmProtectedPages) && worksheetMeta.drmProtectedPages.includes(pageIndex));
+      
+      // Debug logs for DRM protection
+      console.log('🔍 [DRM DEBUG] pageIndex:', pageIndex);
+      console.log('🔍 [DRM DEBUG] worksheetMeta.drmProtected:', worksheetMeta.drmProtected);
+      console.log('🔍 [DRM DEBUG] worksheetMeta.drmProtectedPages:', worksheetMeta.drmProtectedPages);
+      console.log('🔍 [DRM DEBUG] Array.isArray(drmProtectedPages):', Array.isArray(worksheetMeta.drmProtectedPages));
+      console.log('🔍 [DRM DEBUG] drmProtectedPages.includes(pageIndex):', 
+        Array.isArray(worksheetMeta.drmProtectedPages) && worksheetMeta.drmProtectedPages.includes(pageIndex));
+      console.log('🔍 [DRM DEBUG] Final isDrmProtected:', isDrmProtected);
+      
       setIsCurrentPageDrmProtected(isDrmProtected);
     }
   }, [worksheetMeta, pageIndex]);
@@ -545,6 +555,9 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({
       )}
       
       <div className={`worksheet-pdf-container ${isTextMode ? 'hidden' : ''} ${isCurrentPageDrmProtected ? 'drm-active' : ''}`}>
+        {console.log('🔍 [DRM DEBUG] worksheet-pdf-container className:', `worksheet-pdf-container ${isTextMode ? 'hidden' : ''} ${isCurrentPageDrmProtected ? 'drm-active' : ''}`)}
+        {console.log('🔍 [DRM DEBUG] isCurrentPageDrmProtected state:', isCurrentPageDrmProtected)}
+        {console.log('🔍 [DRM DEBUG] isTextMode state:', isTextMode)}
         <Document
           file={pdfUrl}
           onLoadSuccess={onDocumentLoadSuccess}
@@ -559,6 +572,7 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({
             width={window.innerWidth > 768 ? 600 : undefined}
             onLoadSuccess={onPageLoadSuccess}
           />
+          {console.log('🔍 [DRM DEBUG] worksheet-page className:', `worksheet-page ${isCurrentPageDrmProtected ? 'blurred' : ''}`)}
         </Document>
         
         {isCurrentPageDrmProtected && !isTextMode && regions.map((region) => (
