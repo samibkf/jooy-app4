@@ -574,7 +574,8 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({
               height: `${region.height * scaleFactor}px`,
               overflow: 'hidden',
               zIndex: 5,
-              border: '1px solid rgba(0,0,0,0.1)',
+              border: '2px solid rgba(255, 255, 255, 0.8)',
+              backgroundColor: 'rgba(255, 255, 255, 0.1)',
             }}
           >
             <Document
@@ -582,12 +583,15 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({
               className="clear-document"
             >
               <div
+                className="clear-page-container"
                 style={{
                   position: 'absolute',
                   left: `-${region.x * scaleFactor}px`,
                   top: `-${region.y * scaleFactor}px`,
                   width: `${pdfDimensions.width * scaleFactor}px`,
                   height: `${pdfDimensions.height * scaleFactor}px`,
+                  filter: 'none !important',
+                  WebkitFilter: 'none !important',
                 }}
               >
                 <Page
