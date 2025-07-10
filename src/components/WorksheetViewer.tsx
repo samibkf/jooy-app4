@@ -579,8 +579,7 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({
       {isTextMode && audioAvailable && (
         <Button
           onClick={() => setShowTutorSelectionModal(true)}
-          className="fixed top-24 right-4 z-70 rounded-full bg-gradient-orange-magenta hover:bg-gradient-orange-magenta text-white shadow-lg"
-          size="icon"
+          className="fixed top-24 right-4 z-70 rounded-full bg-gradient-orange-magenta hover:bg-gradient-orange-magenta text-white shadow-lg h-10 w-10"
           aria-label="Select Virtual Tutor"
         >
           <UserRound className="h-5 w-5" />
