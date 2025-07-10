@@ -114,14 +114,17 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({
         // No pages are protected
         isDrmProtected = false;
         console.log('🔍 [DRM DEBUG] No pages protected - setting isDrmProtected to false');
-      } else if (Array.isArray(worksheetMeta.drmProtectedPages)) {
-        // Specific pages are protected
-        isDrmProtected = worksheetMeta.drmProtectedPages.includes(pageIndex);
-        console.log('🔍 [DRM DEBUG] Specific pages protected:', worksheetMeta.drmProtectedPages, 'Current page:', pageIndex, 'Is protected:', isDrmProtected);
       } else {
-        // Default to false if undefined or null
-        isDrmProtected = false;
-        console.log('🔍 [DRM DEBUG] Default to false - drmProtectedPages is:', worksheetMeta.drmProtectedPages);
+        // Handle array case or default to false
+        if (Array.isArray(worksheetMeta.drmProtectedPages)) {
+          // Specific pages are protected
+          isDrmProtected = worksheetMeta.drmProtectedPages.includes(pageIndex);
+          console.log('🔍 [DRM DEBUG] Specific pages protected:', worksheetMeta.drmProtectedPages, 'Current page:', pageIndex, 'Is protected:', isDrmProtected);
+        } else {
+          // Default to false if undefined or null
+          isDrmProtected = false;
+          console.log('🔍 [DRM DEBUG] Default to false - drmProtectedPages is:', worksheetMeta.drmProtectedPages);
+        }
       }
       
       console.log('🔍 [DRM DEBUG] Final isDrmProtected value:', isDrmProtected);
