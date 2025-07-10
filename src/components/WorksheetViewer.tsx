@@ -623,6 +623,7 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({
             <Document
               file={pdfUrl}
               className="clear-document"
+              loading={null}
             >
               <div
                 className="clear-page-container"
