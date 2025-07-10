@@ -573,8 +573,8 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({
         </Button>
       )}
       
-      {/* Virtual Tutor Selection Button - only show in text mode */}
-      {isTextMode && (
+      {/* Virtual Tutor Selection Button - only show in text mode when audio/video is available */}
+      {isTextMode && audioAvailable && (
         <Button
           onClick={() => setShowTutorSelectionModal(true)}
           className="fixed top-2 left-1/2 -translate-x-1/2 z-70 rounded-full bg-gradient-orange-magenta hover:bg-gradient-orange-magenta text-white shadow-lg h-8 w-8"
@@ -666,7 +666,7 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({
       
       {activeRegion && (
         <div className={`worksheet-text-display-container ${isTextMode ? 'active' : 'hidden'}`}>
-          {isTextMode && audioAvailable && (
+          {audioAvailable && (
             <video 
               ref={videoRef}
               className="video-element"
