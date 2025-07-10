@@ -17,6 +17,5 @@ export interface WorksheetMetadata {
   documentName: string;
   documentId: string;
   regions: RegionData[];
-  drmProtectedPages?: number[];
-  drmProtected?: boolean;
+  drmProtectedPages?: number[] | boolean;
 }

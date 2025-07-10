@@ -100,17 +100,21 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({
   // Check if current page is DRM protected
   useEffect(() => {
     if (worksheetMeta) {
-      const isDrmProtected = worksheetMeta.drmProtected || 
-        (Array.isArray(worksheetMeta.drmProtectedPages) && worksheetMeta.drmProtectedPages.includes(pageIndex));
+      let isDrmProtected = false;
       
-      // Debug logs for DRM protection
-      console.log('🔍 [DRM DEBUG] pageIndex:', pageIndex);
-      console.log('🔍 [DRM DEBUG] worksheetMeta.drmProtected:', worksheetMeta.drmProtected);
-      console.log('🔍 [DRM DEBUG] worksheetMeta.drmProtectedPages:', worksheetMeta.drmProtectedPages);
-      console.log('🔍 [DRM DEBUG] Array.isArray(drmProtectedPages):', Array.isArray(worksheetMeta.drmProtectedPages));
-      console.log('🔍 [DRM DEBUG] drmProtectedPages.includes(pageIndex):', 
-        Array.isArray(worksheetMeta.drmProtectedPages) && worksheetMeta.drmProtectedPages.includes(pageIndex));
-      console.log('🔍 [DRM DEBUG] Final isDrmProtected:', isDrmProtected);
+      if (worksheetMeta.drmProtectedPages === true) {
+        // All pages are protected
+        isDrmProtected = true;
+      } else if (worksheetMeta.drmProtectedPages === false) {
+        // No pages are protected
+        isDrmProtected = false;
+      } else if (Array.isArray(worksheetMeta.drmProtectedPages)) {
+        // Specific pages are protected
+        isDrmProtected = worksheetMeta.drmProtectedPages.includes(pageIndex);
+      } else {
+        // Default to false if undefined or null
+        isDrmProtected = false;
+      }
       
       setIsCurrentPageDrmProtected(isDrmProtected);
     }
@@ -555,9 +559,6 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({
       )}
       
       <div className={`worksheet-pdf-container ${isTextMode ? 'hidden' : ''} ${isCurrentPageDrmProtected ? 'drm-active' : ''}`}>
-        {console.log('🔍 [DRM DEBUG] worksheet-pdf-container className:', `worksheet-pdf-container ${isTextMode ? 'hidden' : ''} ${isCurrentPageDrmProtected ? 'drm-active' : ''}`)}
-        {console.log('🔍 [DRM DEBUG] isCurrentPageDrmProtected state:', isCurrentPageDrmProtected)}
-        {console.log('🔍 [DRM DEBUG] isTextMode state:', isTextMode)}
         <Document
           file={pdfUrl}
           onLoadSuccess={onDocumentLoadSuccess}
@@ -572,7 +573,6 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({
             width={window.innerWidth > 768 ? 600 : undefined}
             onLoadSuccess={onPageLoadSuccess}
           />
-          {console.log('🔍 [DRM DEBUG] worksheet-page className:', `worksheet-page ${isCurrentPageDrmProtected ? 'blurred' : ''}`)}
         </Document>
         
         {isCurrentPageDrmProtected && !isTextMode && regions.map((region) => (
