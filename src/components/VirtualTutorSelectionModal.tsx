@@ -53,7 +53,7 @@ const VirtualTutorSelectionModal: React.FC<VirtualTutorSelectionModalProps> = ({
           {VIRTUAL_TUTORS.map((tutor) => (
             <div
               key={tutor.id}
-              className="w-20 h-20 cursor-pointer rounded-lg border-2 border-gray-200 hover:border-blue-400 hover:bg-blue-50 transition-all duration-200 overflow-hidden mx-auto"
+              className="w-32 h-32 cursor-pointer rounded-lg border-2 border-gray-200 hover:border-blue-400 hover:bg-blue-50 transition-all duration-200 overflow-hidden mx-auto"
               onClick={() => handleTutorClick(tutor.videoSrc)}
             >
               <img
