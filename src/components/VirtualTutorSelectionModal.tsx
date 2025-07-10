@@ -59,15 +59,12 @@ const VirtualTutorSelectionModal: React.FC<VirtualTutorSelectionModalProps> = ({
               <img
                 src={tutor.imageSrc}
                 alt={tutor.name}
-                className="w-20 h-20 rounded-full object-cover mb-2 shadow-md"
+                className="w-20 h-20 object-cover mb-2 shadow-md"
                 onError={(e) => {
                   // Fallback if image fails to load
                   e.currentTarget.style.display = 'none';
                 }}
               />
-              <p className="text-sm font-medium text-center text-gray-700">
-                {tutor.name}
-              </p>
             </div>
           ))}
         </div>
