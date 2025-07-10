@@ -1,22 +1,23 @@
-const CACHE_NAME = 'pdf-navigator-v1';
-const STATIC_CACHE_NAME = 'pdf-navigator-static-v1';
+// Dynamic cache versioning using build timestamp
+const BUILD_TIMESTAMP = Date.now();
+const CACHE_NAME = `pdf-navigator-v${BUILD_TIMESTAMP}`;
+const STATIC_CACHE_NAME = `pdf-navigator-static-v${BUILD_TIMESTAMP}`;
 
-// Only preload essential files and the video
+// Only preload essential files (removed default.mp4 as it no longer exists)
 const STATIC_ASSETS = [
   '/',
-  '/manifest.json',
-  '/video/default.mp4'
+  '/manifest.json'
 ];
 
-// Install event - cache only essential assets and video
+// Install event - cache only essential assets
 self.addEventListener('install', (event) => {
-  console.log('Service Worker: Installing...');
+  console.log('Service Worker: Installing with version', BUILD_TIMESTAMP);
   
   event.waitUntil(
     Promise.all([
-      // Cache static assets including video
+      // Cache static assets
       caches.open(STATIC_CACHE_NAME).then((cache) => {
-        console.log('Service Worker: Caching static assets and video');
+        console.log('Service Worker: Caching static assets');
         return cache.addAll(STATIC_ASSETS);
       }),
       // Cache the app shell (HTML, CSS, JS)
@@ -34,9 +35,9 @@ self.addEventListener('install', (event) => {
   );
 });
 
-// Activate event - clean up old caches
+// Activate event - clean up old caches and notify clients of update
 self.addEventListener('activate', (event) => {
-  console.log('Service Worker: Activating...');
+  console.log('Service Worker: Activating with version', BUILD_TIMESTAMP);
   
   event.waitUntil(
     caches.keys().then((cacheNames) => {
@@ -52,6 +53,16 @@ self.addEventListener('activate', (event) => {
       console.log('Service Worker: Activation complete');
       // Ensure the service worker takes control of all pages immediately
       return self.clients.claim();
+    }).then(() => {
+      // Notify all clients that a new version is available
+      return self.clients.matchAll().then((clients) => {
+        clients.forEach((client) => {
+          client.postMessage({
+            type: 'SW_UPDATE_AVAILABLE',
+            version: BUILD_TIMESTAMP
+          });
+        });
+      });
     })
   );
 });
@@ -101,23 +112,6 @@ self.addEventListener('fetch', (event) => {
           // Cache the asset for future use
           const responseClone = response.clone();
           caches.open(CACHE_NAME).then((cache) => {
-            cache.put(request, responseClone);
-          });
-          return response;
-        });
-      })
-    );
-  } else if (url.pathname === '/video/default.mp4') {
-    // For the video file, serve from cache if available
-    event.respondWith(
-      caches.match(request).then((cachedResponse) => {
-        if (cachedResponse) {
-          return cachedResponse;
-        }
-        // If not in cache, fetch and cache it
-        return fetch(request).then((response) => {
-          const responseClone = response.clone();
-          caches.open(STATIC_CACHE_NAME).then((cache) => {
             cache.put(request, responseClone);
           });
           return response;
@@ -231,6 +225,6 @@ self.addEventListener('message', (event) => {
   }
   
   if (event.data && event.data.type === 'GET_VERSION') {
-    event.ports[0].postMessage({ version: CACHE_NAME });
+    event.ports[0].postMessage({ version: BUILD_TIMESTAMP });
   }
 });
