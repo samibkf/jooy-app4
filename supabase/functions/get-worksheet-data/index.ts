@@ -90,7 +90,7 @@ serve(async (req) => {
 
     // DRM protection logic: Only use drm_protected_pages array
     // The is_private flag is ignored for DRM protection
-    const drmProtectedPages = document.drm_protected_pages || false
+    const drmProtectedPages = document.drm_protected_pages || []
 
     // Transform data to match expected format
     const responseData = {
