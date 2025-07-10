@@ -3,8 +3,9 @@ import { Document, Page, pdfjs } from "react-pdf";
 import "../styles/Worksheet.css";
 import { toast } from "@/components/ui/use-toast";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, Sparkles } from "lucide-react";
+import { ChevronLeft, Sparkles, UserRound } from "lucide-react";
 import { getTextDirection } from "@/lib/textDirection";
+import VirtualTutorSelectionModal from "./VirtualTutorSelectionModal";
 import type { WorksheetMetadata, RegionData } from "@/types/worksheet";
 
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.js`;
@@ -54,6 +55,10 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({
   const [isAudioPlaying, setIsAudioPlaying] = useState<boolean>(false);
   const [audioAvailable, setAudioAvailable] = useState<boolean>(true);
   const [audioCheckPerformed, setAudioCheckPerformed] = useState<boolean>(false);
+  
+  // Virtual tutor selection state
+  const [selectedTutorVideoUrl, setSelectedTutorVideoUrl] = useState<string>("/video/default.mp4");
+  const [showTutorSelectionModal, setShowTutorSelectionModal] = useState<boolean>(false);
   
   // State to track if initial state has been restored for the current worksheet/page
   const [hasRestoredInitialState, setHasRestoredInitialState] = useState<boolean>(false);
@@ -445,6 +450,8 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({
       
       if (videoRef.current && audioAvailable) {
         videoRef.current.currentTime = 0;
+        videoRef.current.load(); // Reload video with current source
+        videoRef.current.load(); // Reload video with current source
         videoRef.current.play().catch(err => {
           // Suppress expected errors when video is removed from DOM
           if (err.name !== 'AbortError' && !err.message.includes('media was removed from the document')) {
@@ -522,6 +529,24 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({
     setIsAudioPlaying(false);
   };
 
+  const handleTutorSelected = (videoUrl: string) => {
+    setSelectedTutorVideoUrl(videoUrl);
+    setShowTutorSelectionModal(false);
+    
+    // Reload the video with the new source
+    if (videoRef.current) {
+      videoRef.current.load();
+      if (isAudioPlaying) {
+        videoRef.current.play().catch(err => {
+          // Suppress expected errors when video is removed from DOM
+          if (err.name !== 'AbortError' && !err.message.includes('media was removed from the document')) {
+            // Suppress non-debug logs
+          }
+        });
+      }
+    }
+  };
+
   const handleVideoContextMenu = (e: React.MouseEvent) => {
     e.preventDefault();
   };
@@ -542,6 +567,18 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({
           size="icon"
         >
           <ChevronLeft className="h-5 w-5" />
+        </Button>
+      )}
+      
+      {/* Virtual Tutor Selection Button - only show in text mode */}
+      {isTextMode && (
+        <Button
+          onClick={() => setShowTutorSelectionModal(true)}
+          className="fixed top-4 left-1/2 -translate-x-1/2 z-70 rounded-full bg-gradient-orange-magenta hover:bg-gradient-orange-magenta text-white shadow-lg"
+          size="icon"
+          aria-label="Select Virtual Tutor"
+        >
+          <UserRound className="h-5 w-5" />
         </Button>
       )}
       
@@ -630,7 +667,7 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({
             <video 
               ref={videoRef}
               className="video-element"
-              src="/video/default.mp4"
+              src={selectedTutorVideoUrl}
               muted
               autoPlay
               playsInline
@@ -684,6 +721,13 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({
           </p>
         </div>
       )}
+      
+      {/* Virtual Tutor Selection Modal */}
+      <VirtualTutorSelectionModal
+        isOpen={showTutorSelectionModal}
+        onClose={() => setShowTutorSelectionModal(false)}
+        onSelectTutor={handleTutorSelected}
+      />
     </div>
   );
 };
