@@ -575,15 +575,15 @@ const WorksheetViewer: React.FC<WorksheetViewerProps> = ({
         </Button>
       )}
       
-      {/* Virtual Tutor Selection Button - only show in text mode when audio/video is available */}
+      {/* Virtual Tutor Selection Button - positioned on right side with distance from QR button */}
       {isTextMode && audioAvailable && (
         <Button
           onClick={() => setShowTutorSelectionModal(true)}
-          className="fixed top-2 left-1/2 -translate-x-1/2 z-70 rounded-full bg-gradient-orange-magenta hover:bg-gradient-orange-magenta text-white shadow-lg h-8 w-8"
-          size="sm"
+          className="fixed top-24 right-4 z-70 rounded-full bg-gradient-orange-magenta hover:bg-gradient-orange-magenta text-white shadow-lg"
+          size="icon"
           aria-label="Select Virtual Tutor"
         >
-          <UserRound className="h-4 w-4" />
+          <UserRound className="h-5 w-5" />
         </Button>
       )}
       
