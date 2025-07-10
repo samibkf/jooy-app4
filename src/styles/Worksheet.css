@@ -36,9 +36,24 @@
 }
 
 /* DRM styling */
-.worksheet-pdf-container.drm-active .worksheet-page.blurred {
+.worksheet-pdf-container.drm-active .react-pdf__Page.blurred,
+.worksheet-pdf-container.drm-active .worksheet-page.blurred,
+.drm-active .worksheet-page.blurred,
+.worksheet-page.blurred {
   filter: blur(8px);
   transition: filter 0.3s ease;
+  -webkit-filter: blur(8px);
+}
+
+/* Additional DRM blur selectors to ensure it works */
+.drm-active .react-pdf__Page__canvas {
+  filter: blur(8px);
+  -webkit-filter: blur(8px);
+}
+
+.worksheet-page.blurred .react-pdf__Page__canvas {
+  filter: blur(8px);
+  -webkit-filter: blur(8px);
 }
 
 .worksheet-clear-region {
