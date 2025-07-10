@@ -53,13 +53,13 @@ const VirtualTutorSelectionModal: React.FC<VirtualTutorSelectionModalProps> = ({
           {VIRTUAL_TUTORS.map((tutor) => (
             <div
               key={tutor.id}
-              className="flex flex-col items-center cursor-pointer p-3 rounded-lg border-2 border-gray-200 hover:border-blue-400 hover:bg-blue-50 transition-all duration-200"
+              className="w-20 h-20 cursor-pointer rounded-lg border-2 border-gray-200 hover:border-blue-400 hover:bg-blue-50 transition-all duration-200 overflow-hidden mx-auto"
               onClick={() => handleTutorClick(tutor.videoSrc)}
             >
               <img
                 src={tutor.imageSrc}
                 alt={tutor.name}
-                className="w-20 h-20 object-cover mb-2 shadow-md"
+                className="w-full h-full object-cover"
                 onError={(e) => {
                   // Fallback if image fails to load
                   e.currentTarget.style.display = 'none';
