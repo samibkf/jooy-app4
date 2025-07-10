@@ -3,6 +3,9 @@ import { initReactI18next } from 'react-i18next';
 import LanguageDetector from 'i18next-browser-languagedetector';
 import Backend from 'i18next-http-backend';
 
+// Add cache-busting timestamp to force fresh translation loads
+const CACHE_BUSTER = Date.now();
+
 i18n
   .use(Backend)
   .use(LanguageDetector)
@@ -17,7 +20,8 @@ i18n
     },
 
     backend: {
-      loadPath: '/locales/{{lng}}.json',
+      // Add cache-busting parameter to ensure fresh translation files
+      loadPath: `/locales/{{lng}}.json?v=${CACHE_BUSTER}`,
     },
 
     detection: {
