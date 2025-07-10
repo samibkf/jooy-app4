@@ -46,8 +46,8 @@ const VirtualTutorSelectionModal: React.FC<VirtualTutorSelectionModalProps> = ({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-md mx-auto">
         <DialogHeader>
-          <DialogTitle className="text-center">{t('virtualTutor.selectTitle')}</DialogTitle>
-          <DialogDescription className="text-center">
+          <DialogTitle className="text-center" dir={t('common.language') === 'العربية' ? 'rtl' : 'ltr'}>{t('virtualTutor.selectTitle')}</DialogTitle>
+          <DialogDescription className="text-center" dir={t('common.language') === 'العربية' ? 'rtl' : 'ltr'}>
             {t('virtualTutor.selectDescription')}
           </DialogDescription>
         </DialogHeader>
@@ -77,6 +77,7 @@ const VirtualTutorSelectionModal: React.FC<VirtualTutorSelectionModalProps> = ({
             onClick={onClose}
             variant="outline"
             className="px-6"
+            dir={t('common.language') === 'العربية' ? 'rtl' : 'ltr'}
           >
             {t('virtualTutor.cancel')}
           </Button>

@@ -1,6 +1,6 @@
 {
   "qrScanner": {
-    "title": "امسح ال QR",
+    "title": "امسح الـ QR",
     "invalidFormat": "تنسيق رمز استجابة سريعة غير صالح",
     "invalidFormatDesc": "يرجى مسح رمز استجابة سريعة صالح لورقة العمل.",
     "cameraError": "خطأ في الكاميرا",

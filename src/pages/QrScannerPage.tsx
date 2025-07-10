@@ -77,7 +77,7 @@ const QrScannerPage: React.FC = () => {
 
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold text-gradient-clip">
+          <CardTitle className="text-2xl font-bold text-gradient-clip" dir={i18n.language === 'ar' ? 'rtl' : 'ltr'}>
             {t('qrScanner.title')}
           </CardTitle>
         </CardHeader>
@@ -85,7 +85,7 @@ const QrScannerPage: React.FC = () => {
           {error ? (
             <div className="text-center">
               <p className="text-red-500 mb-4">{error}</p>
-              <Button onClick={resetScanner} className="bg-gradient-orange-magenta hover:bg-gradient-orange-magenta text-white">
+              <Button onClick={resetScanner} className="bg-gradient-orange-magenta hover:bg-gradient-orange-magenta text-white" dir={i18n.language === 'ar' ? 'rtl' : 'ltr'}>
                 {t('qrScanner.tryAgain')}
               </Button>
             </div>

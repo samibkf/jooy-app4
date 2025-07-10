@@ -85,7 +85,7 @@ const AIChatPage: React.FC = () => {
       role: 'assistant',
       content: t('aiChat.welcome')
     }]);
-  }, [worksheetId, pageNumber]);
+  }, [worksheetId, pageNumber, t]);
 
   // Save chat history to localStorage whenever messages change
   useEffect(() => {
