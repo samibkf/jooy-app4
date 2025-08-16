@@ -33,7 +33,7 @@ serve(async (req) => {
     // Fetch document metadata from 'documents' table
     const { data: document, error: documentError } = await supabase
       .from('documents')
-      .select('*')
+      .select('name, id, drm_protected_pages, metadata') // Select the metadata column
       .eq('id', worksheetId)
       .single()
 
@@ -48,22 +48,52 @@ serve(async (req) => {
       )
     }
 
-    // Fetch regions from 'document_regions' table using document_id
-    const { data: regions, error: regionsError } = await supabase
-      .from('document_regions')
-      .select('*')
-      .eq('document_id', worksheetId)
-      .order('page', { ascending: true })
+    let worksheetMeta;
+    const drmProtectedPages = document.drm_protected_pages || [];
 
-    if (regionsError) {
-      console.error('Document regions fetch error:', regionsError)
-      return new Response(
-        JSON.stringify({ error: 'Failed to fetch document regions' }),
-        { 
-          status: 500, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      )
+    // Check if the document metadata indicates 'auto' mode
+    if (document.metadata && document.metadata.mode === 'auto') {
+      // If it's auto mode, use the metadata directly from the documents table
+      worksheetMeta = document.metadata;
+    } else {
+      // Otherwise, assume it's regions mode and fetch regions from the document_regions table
+      const { data: regions, error: regionsError } = await supabase
+        .from('document_regions')
+        .select('*')
+        .eq('document_id', worksheetId)
+        .order('page', { ascending: true })
+
+      if (regionsError) {
+        console.error('Document regions fetch error:', regionsError)
+        return new Response(
+          JSON.stringify({ error: 'Failed to fetch document regions' }),
+          { 
+            status: 500, 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          }
+        )
+      }
+
+      // Construct the meta object for regions mode
+      worksheetMeta = {
+        documentName: document.name,
+        documentId: document.id,
+        drmProtectedPages: drmProtectedPages,
+        regions: regions?.map(region => ({
+          id: region.id,
+          document_id: document.id,
+          user_id: region.user_id,
+          page: region.page,
+          x: region.x,
+          y: region.y,
+          width: region.width,
+          height: region.height,
+          type: region.type,
+          name: region.name,
+          description: region.description || [],
+          created_at: region.created_at
+        })) || []
+      };
     }
 
     // Get PDF URL from 'pdfs' storage bucket with 24 hour expiry
@@ -88,31 +118,8 @@ serve(async (req) => {
       )
     }
 
-    // DRM protection logic: Only use drm_protected_pages array
-    // The is_private flag is ignored for DRM protection
-    const drmProtectedPages = document.drm_protected_pages || []
-
-    // Transform data to match expected format
     const responseData = {
-      meta: {
-        documentName: document.name,
-        documentId: document.id,
-        drmProtectedPages: drmProtectedPages,
-        regions: regions?.map(region => ({
-          id: region.id,
-          document_id: document.id,
-          user_id: region.user_id,
-          page: region.page,
-          x: region.x,
-          y: region.y,
-          width: region.width,
-          height: region.height,
-          type: region.type,
-          name: region.name,
-          description: region.description || [],
-          created_at: region.created_at
-        })) || []
-      },
+      meta: worksheetMeta, // Use the dynamically determined meta
       pdfUrl
     }
 
