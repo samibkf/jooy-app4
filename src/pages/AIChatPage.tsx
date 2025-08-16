@@ -14,7 +14,7 @@ import { ChevronLeft, Send, Loader2, User, Bot } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
 import { getTextDirection } from "@/lib/textDirection";
 import SwitchModeButton from "@/components/SwitchModeButton";
-import type { RegionData, WorksheetMetadata } from "@/types/worksheet";
+import type { RegionData, AutoModeGuidanceItem, WorksheetMetadata } from "@/types/worksheet";
 
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.js`;
 
@@ -34,6 +34,7 @@ const AIChatPage: React.FC = () => {
   const locationState = location.state as { 
     fromTextMode?: boolean;
     activeRegion?: RegionData;
+    activeGuidanceItem?: AutoModeGuidanceItem;
     currentStepIndex?: number;
     pdfUrl?: string;
     worksheetMeta?: WorksheetMetadata;
@@ -41,6 +42,7 @@ const AIChatPage: React.FC = () => {
   
   const fromTextMode = locationState?.fromTextMode || false;
   const activeRegion = locationState?.activeRegion;
+  const activeGuidanceItem = locationState?.activeGuidanceItem;
   const currentStepIndex = locationState?.currentStepIndex || 0;
   const pdfUrl = locationState?.pdfUrl;
   const worksheetMeta = locationState?.worksheetMeta;
@@ -503,6 +505,7 @@ Analyze the student's question carefully. If they're asking for a specific works
           pageNumber={parseInt(pageNumber!)} 
           shouldDisplay={true}
           initialActiveRegion={activeRegion}
+          initialActiveGuidanceItem={activeGuidanceItem}
           initialCurrentStepIndex={currentStepIndex}
         />
       )}

@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { supabase, shouldUseSupabase } from '@/lib/supabase'
-import type { WorksheetMetadata } from '@/types/worksheet'
+import type { WorksheetMetadata, AutoModeMetadata, RegionsModeMetadata } from '@/types/worksheet'
 
 interface WorksheetDataResponse {
   meta: WorksheetMetadata;
@@ -19,8 +19,18 @@ export const useWorksheetData = (worksheetId: string) => {
           throw new Error(`Failed to fetch worksheet data: ${response.status}`)
         }
         const jsonData = await response.json()
+        
+        // Check if this is Auto Mode metadata
+        if (jsonData.mode === 'auto') {
+          return {
+            meta: jsonData as AutoModeMetadata,
+            pdfUrl: `/pdfs/${worksheetId}.pdf`
+          }
+        }
+        
+        // Otherwise, treat as Regions Mode metadata
         return {
-          meta: jsonData,
+          meta: jsonData as RegionsModeMetadata,
           pdfUrl: `/pdfs/${worksheetId}.pdf`
         }
       }

@@ -4,13 +4,14 @@ import { Button } from "@/components/ui/button";
 import { MessageSquareText } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
 import { cn } from "@/lib/utils";
-import type { RegionData, WorksheetMetadata } from "@/types/worksheet";
+import type { RegionData, AutoModeGuidanceItem, WorksheetMetadata } from "@/types/worksheet";
 
 interface AIChatButtonProps {
   worksheetId: string;
   pageNumber: number;
   isTextModeActive: boolean;
   activeRegion?: RegionData | null;
+  activeGuidanceItem?: AutoModeGuidanceItem | null;
   currentStepIndex?: number;
   pdfUrl: string;
   worksheetMeta: WorksheetMetadata;
@@ -21,6 +22,7 @@ const AIChatButton: React.FC<AIChatButtonProps> = ({
   pageNumber, 
   isTextModeActive,
   activeRegion,
+  activeGuidanceItem,
   currentStepIndex = 0,
   pdfUrl,
   worksheetMeta
@@ -70,6 +72,7 @@ const AIChatButton: React.FC<AIChatButtonProps> = ({
       state: { 
         fromTextMode: isTextModeActive,
         activeRegion: activeRegion,
+        activeGuidanceItem: activeGuidanceItem,
         currentStepIndex: currentStepIndex,
         pdfUrl: pdfUrl,
         worksheetMeta: worksheetMeta
