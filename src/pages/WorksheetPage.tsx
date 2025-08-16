@@ -321,6 +321,7 @@ const WorksheetPage: React.FC = () => {
         console.log('🔍 [DEBUG] Current allGuidanceState before update:', currentAllGuidanceState);
         
         if (guidanceItem) {
+          const pageIndex = parseInt(n, 10);
           const guidanceKey = `${pageIndex}_${guidanceItem.title}`;
           const updatedAllGuidanceState = {
             ...currentAllGuidanceState,
@@ -388,76 +389,7 @@ const WorksheetPage: React.FC = () => {
         }
       });
     }
-  }, [id, n, pageIndex]);
-
-  // Determine which mode we're in and render accordingly
-  const isAutoMode = worksheetData && isAutoModeMetadata(worksheetData.meta);
-
-  return (
-    <div className="min-h-screen bg-gray-50">
-      {isAutoMode ? (
-        <AutoModeViewer
-          worksheetId={id}
-          pageIndex={pageIndex}
-          worksheetMeta={worksheetData.meta}
-          onTextModeChange={setIsTextModeActive}
-          initialActiveGuidanceItem={initialActiveGuidanceItem}
-          initialCurrentStepIndex={initialCurrentStepIndex}
-          onGuidanceStateChange={handleGuidanceStateChange}
-          allGuidanceState={allGuidanceState}
-        />
-      ) : (
-        <WorksheetViewer 
-          worksheetId={id} 
-          pageIndex={pageIndex} 
-          worksheetMeta={worksheetData.meta as any}
-          pdfUrl={worksheetData.pdfUrl}
-          onTextModeChange={setIsTextModeActive}
-          initialActiveRegion={initialActiveRegion}
-          initialCurrentStepIndex={initialCurrentStepIndex}
-          onRegionStateChange={handleRegionStateChange}
-          allRegionsState={allRegionsState}
-        />
-      )}
-      
-      <AIChatButton 
-        worksheetId={id} 
-        pageNumber={pageIndex} 
-        isTextModeActive={isTextModeActive}
-        activeRegion={isAutoMode ? null : currentActiveRegion}
-        activeGuidanceItem={isAutoMode ? currentActiveGuidanceItem : null}
-        currentStepIndex={currentStepIndex}
-        pdfUrl={worksheetData.pdfUrl}
-        worksheetMeta={worksheetData.meta}
-      />
-    </div>
-  );
-};
-
-export default WorksheetPage;
-              
-              console.log('🔍 [DEBUG] About to save state (no active region) to sessionStorage:', stateToSave);
-              
-              sessionStorage.setItem(sessionKey, JSON.stringify(stateToSave));
-              console.log('🔍 [DEBUG] Successfully updated last active region in session with key:', sessionKey);
-              
-              // Verify the save by immediately reading it back
-              const verifyState = sessionStorage.getItem(sessionKey);
-              console.log('🔍 [DEBUG] Verification - state read back from sessionStorage:', verifyState);
-            } else {
-              console.log('🔍 [DEBUG] No sessionStorage update needed - lastActiveRegionId already null');
-            }
-          } catch (error) {
-            console.warn('🔍 [DEBUG] Failed to update session state:', error);
-          }
-          
-          console.log('🔍 [DEBUG] Returning unchanged allRegionsState:', currentAllRegionsState);
-          // Return the same object reference to prevent unnecessary re-renders
-          return currentAllRegionsState;
-        }
-      });
-    }
-  }, [id, n]); // Only depend on id and n, which are stable
+  }, [id, n]);
 
   if (!id || !n) {
     return (
@@ -514,24 +446,42 @@ export default WorksheetPage;
     );
   }
 
+  // Determine which mode we're in and render accordingly
+  const isAutoMode = worksheetData && isAutoModeMetadata(worksheetData.meta);
+
   return (
     <div className="min-h-screen bg-gray-50">
-      <WorksheetViewer 
-        worksheetId={id} 
-        pageIndex={pageIndex} 
-        worksheetMeta={worksheetData.meta}
-        pdfUrl={worksheetData.pdfUrl}
-        onTextModeChange={setIsTextModeActive}
-        initialActiveRegion={initialActiveRegion}
-        initialCurrentStepIndex={initialCurrentStepIndex}
-        onRegionStateChange={handleRegionStateChange}
-        allRegionsState={allRegionsState}
-      />
+      {isAutoMode ? (
+        <AutoModeViewer
+          worksheetId={id}
+          pageIndex={pageIndex}
+          worksheetMeta={worksheetData.meta}
+          onTextModeChange={setIsTextModeActive}
+          initialActiveGuidanceItem={initialActiveGuidanceItem}
+          initialCurrentStepIndex={initialCurrentStepIndex}
+          onGuidanceStateChange={handleGuidanceStateChange}
+          allGuidanceState={allGuidanceState}
+        />
+      ) : (
+        <WorksheetViewer 
+          worksheetId={id} 
+          pageIndex={pageIndex} 
+          worksheetMeta={worksheetData.meta as any}
+          pdfUrl={worksheetData.pdfUrl}
+          onTextModeChange={setIsTextModeActive}
+          initialActiveRegion={initialActiveRegion}
+          initialCurrentStepIndex={initialCurrentStepIndex}
+          onRegionStateChange={handleRegionStateChange}
+          allRegionsState={allRegionsState}
+        />
+      )}
+      
       <AIChatButton 
         worksheetId={id} 
         pageNumber={pageIndex} 
         isTextModeActive={isTextModeActive}
-        activeRegion={currentActiveRegion}
+        activeRegion={isAutoMode ? null : currentActiveRegion}
+        activeGuidanceItem={isAutoMode ? currentActiveGuidanceItem : null}
         currentStepIndex={currentStepIndex}
         pdfUrl={worksheetData.pdfUrl}
         worksheetMeta={worksheetData.meta}
